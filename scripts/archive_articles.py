@@ -2,11 +2,17 @@
 """
 archive_articles.py — 从微信后台拉取已发布文章，自动存档到 references/archives/published/
 
+存档结构（每篇文章一个文件夹）：
+  references/archives/published/YYYY-MM-DD-标题slug/
+    published.html   ← 微信发布版原文（真实渲染HTML）
+    content.md       ← 净化版Markdown（原写作稿）
+
 用法:
-  python3 archive_articles.py              # 拉全部文章
+  python3 archive_articles.py                  # 拉全部文章（跳过已存档）
   python3 archive_articles.py --since 2026-03-01  # 只拉指定日期之后的
-  python3 archive_articles.py --force      # 强制覆盖已存档的文章
-  python3 archive_articles.py --dry-run   # 只显示要拉哪些，不实际下载
+  python3 archive_articles.py --force           # 强制覆盖已存档的文章
+  python3 archive_articles.py --dry-run         # 只显示要拉哪些，不实际下载
+  python3 archive_articles.py --latest           # 只拉最新一篇文章（发布后触发）
 """
 
 import argparse
@@ -25,7 +31,7 @@ ARCHIVE_DIR = SCRIPT_DIR.parent / "references" / "archives" / "published"
 HIST_INDEX = SCRIPT_DIR.parent / "references" / "HISTORICAL-ARTICLES.md"
 
 
-def run_wxdown(args: list[str]) -> str:
+def run_wxdown(args: list[str], timeout: int = 60) -> str:
     """在 wxdown 目录下执行 wxdown-manage.py"""
     cmd = ["python3", "scripts/wxdown-manage.py"] + args
     result = subprocess.run(
@@ -33,7 +39,7 @@ def run_wxdown(args: list[str]) -> str:
         cwd=WXDOWN_DIR,
         capture_output=True,
         text=True,
-        timeout=60,
+        timeout=timeout,
     )
     if result.returncode != 0:
         print(f"  ⚠️ wxdown 命令失败: {' '.join(args)}", file=sys.stderr)
@@ -47,31 +53,25 @@ def get_articles(limit: int = 20) -> list[dict]:
     output = run_wxdown(["articles", "findyi", "--size", str(limit)])
     articles = []
 
-    # 解析 "## 「findyi」最新文章" 格式
-    # 格式: 1. **标题** 作者: xxx 发布: YYYY-MM-DD HH:MM 摘要: xxx 链接: https://...
     current = {}
     for line in output.split("\n"):
         line = line.strip()
         if not line:
             continue
-        # 文章编号行
         m = re.match(r"^\d+\.\s+\*\*(.+?)\*\*", line)
         if m:
             if current:
                 articles.append(current)
             current = {"title": m.group(1)}
             continue
-        # 发布日期
         m = re.match(r"发布:\s*(\d{4}-\d{2}-\d{2})", line)
         if m:
             current["date"] = m.group(1)
             continue
-        # 链接
         m = re.match(r"链接:\s*(https://mp\.weixin\.qq\.com/s/\S+)", line)
         if m:
             current["url"] = m.group(1)
             continue
-        # 摘要
         m = re.match(r"摘要:\s*(.+)", line)
         if m:
             current["abstract"] = m.group(1)
@@ -84,51 +84,61 @@ def get_articles(limit: int = 20) -> list[dict]:
 
 
 def slugify(title: str) -> str:
-    """标题转 slug: 去掉特殊字符，取前20字"""
+    """标题转 slug: 去掉特殊字符，取前12字（文件夹名要短）"""
     s = re.sub(r"[^\w\s\u4e00-\u9fff]", "", title)
     s = re.sub(r"\s+", "-", s)
-    # 取前20字符
-    return s[:20] if len(s) > 20 else s
+    return s[:12] if len(s) > 12 else s
 
 
-def archive_filename(article: dict) -> str:
-    """生成存档文件名: YYYY-MM-DD-slug-published.md"""
+def archive_foldername(article: dict) -> str:
+    """生成存档文件夹名: YYYY-MM-DD-slug"""
     date = article.get("date", datetime.now().strftime("%Y-%m-%d"))
     slug = slugify(article["title"])
-    return f"{date}-{slug}-published.md"
+    return f"{date}-{slug}"
 
 
-def download_article(url: str) -> str:
-    """下载单篇文章内容（原始markdown）"""
-    output = run_wxdown(["download", url, "--format", "md"])
-    return output
+def is_archived(article: dict) -> bool:
+    """检查是否已存档（以文件夹是否存在为准）"""
+    folder = archive_foldername(article)
+    folder_path = ARCHIVE_DIR / folder
+    return folder_path.exists() and (folder_path / "published.html").exists()
 
 
-def already_archived(article: dict, force: bool = False) -> bool:
-    """检查是否已存档"""
-    fname = archive_filename(article)
-    fpath = ARCHIVE_DIR / fname
-    if not fpath.exists():
-        return False
-    if force:
-        print(f"  → 强制覆盖: {fname}")
-        return False
-    print(f"  ✓ 已存档，跳过: {fname}")
+def download_both(url: str) -> tuple[str, str]:
+    """同时下载 HTML 和 MD 格式，返回 (html, md)"""
+    html = run_wxdown(["download", url, "--format", "html"], timeout=90)
+    md = run_wxdown(["download", url, "--format", "md"], timeout=90)
+    return html, md
+
+
+def clean_md(content: str) -> str:
+    """净化 wxdown 下载的 md：去掉微信 HTML wrapper"""
+    import re
+    content = re.sub(r'^::: \{[^}]*\}[^\n]*\n', '', content, flags=re.MULTILINE)
+    content = re.sub(r'\n:::\s*$', '\n', content)
+    return content
+
+
+def save_article(article: dict, html: str, md: str, force: bool = False) -> bool:
+    """保存文章到文件夹"""
+    folder = archive_foldername(article)
+    folder_path = ARCHIVE_DIR / folder
+    folder_path.mkdir(parents=True, exist_ok=True)
+
+    (folder_path / "published.html").write_text(html)
+    (folder_path / "content.md").write_text(clean_md(md))
     return True
 
 
 def update_hist_index(articles: list[dict]):
     """更新 HISTORICAL-ARTICLES.md 的已发布文章表格"""
-    # 读取现有内容
-    if HIST_INDEX.exists():
-        content = HIST_INDEX.read_text()
-    else:
-        content = ""
+    if not HIST_INDEX.exists():
+        print("  ⚠️ HISTORICAL-ARTICLES.md 不存在，跳过索引更新")
+        return
 
-    # 提取已有链接（避免重复写入）
+    content = HIST_INDEX.read_text()
     existing_urls = set(re.findall(r"https://mp\.weixin\.qq\.com/s/\S+", content))
 
-    # 生成新行
     new_lines = []
     for a in articles:
         if a.get("url") in existing_urls:
@@ -137,26 +147,23 @@ def update_hist_index(articles: list[dict]):
         title = a.get("title", "")
         url = a.get("url", "")
         abstract = a.get("abstract", "")
-        new_lines.append(f"| {date} | {title} | {url} | {abstract} |")
+        folder = archive_foldername(a)
+        new_lines.append(f"| {date} | {title} | {folder}/ | {url} | {abstract} |")
 
     if not new_lines:
         print("  ✓ HISTORICAL-ARTICLES.md 已是最新的")
         return
 
-    # 找到表格最后一行（| ---- | 之后的第一行），在其后插入
-    if "| 日期 | 标题 | 链接 | 摘要 |" in content:
-        # 找到表格结束位置（最后一个 | --- | 行之后）
-        last_sep = content.rfind("|------|")
-        if last_sep != -1:
-            end = content.find("\n", last_sep)
-            if end != -1:
-                insert_pos = end + 1
-                new_content = content[:insert_pos] + "\n".join(new_lines) + "\n" + content[insert_pos:]
-                HIST_INDEX.write_text(new_content)
-                print(f"  ✓ HISTORICAL-ARTICLES.md 新增 {len(new_lines)} 条记录")
-                return
+    last_sep = content.rfind("|------|")
+    if last_sep != -1:
+        end = content.find("\n", last_sep)
+        if end != -1:
+            insert_pos = end + 1
+            new_content = content[:insert_pos] + "\n".join(new_lines) + "\n" + content[insert_pos:]
+            HIST_INDEX.write_text(new_content)
+            print(f"  ✓ HISTORICAL-ARTICLES.md 新增 {len(new_lines)} 条记录")
+            return
 
-    # 兜底：直接追加
     HIST_INDEX.write_text(content + "\n" + "\n".join(new_lines) + "\n")
     print(f"  ✓ HISTORICAL-ARTICLES.md 追加 {len(new_lines)} 条记录")
 
@@ -166,6 +173,7 @@ def main():
     parser.add_argument("--since", default="", help="只拉此日期之后的文章，如 2026-03-01")
     parser.add_argument("--force", action="store_true", help="强制覆盖已存档的文章")
     parser.add_argument("--dry-run", action="store_true", help="只显示要拉哪些，不实际下载")
+    parser.add_argument("--latest", action="store_true", help="只拉最新一篇文章（发布后立即触发）")
     args = parser.parse_args()
 
     ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
@@ -173,6 +181,10 @@ def main():
     print("📋 获取文章列表...")
     articles = get_articles(limit=20)
     print(f"  → 获取到 {len(articles)} 篇文章")
+
+    if args.latest:
+        articles = articles[:1]
+        print(f"  → 只拉最新: {articles[0]['title'][:30]}")
 
     if args.since:
         from datetime import datetime as dt
@@ -189,23 +201,27 @@ def main():
 
     print("\n📥 开始存档...")
     archived = []
+    skipped = 0
     for a in articles:
-        fname = archive_filename(a)
-        fpath = ARCHIVE_DIR / fname
+        folder = archive_foldername(a)
+        folder_path = ARCHIVE_DIR / folder
 
-        if already_archived(a, args.force):
+        if is_archived(a) and not args.force:
+            print(f"  ✓ 已存档，跳过: {folder}/")
+            skipped += 1
             continue
 
         if args.dry_run:
-            print(f"  [dry-run] 将存档: {fname}")
+            status = "覆盖" if folder_path.exists() else "新建"
+            print(f"  [dry-run] {status}: {folder}/")
             continue
 
         print(f"  下载中: {a.get('title', 'unknown')[:30]}...")
-        content = download_article(a["url"])
-        if content:
-            fpath.write_text(content)
+        html, md = download_both(a["url"])
+        if html and md:
+            save_article(a, html, md, args.force)
             archived.append(a)
-            print(f"  ✓ 已存档: {fname}")
+            print(f"  ✓ 已存档: {folder}/")
         else:
             print(f"  ⚠️ 下载失败: {a.get('url')}")
 
@@ -213,7 +229,9 @@ def main():
         print("\n📝 更新索引...")
         update_hist_index(archived)
 
-    print(f"\n✅ 完成。共存档 {len(archived) if not args.dry_run else 0} 篇（dry-run 显示 {len([a for a in articles if not already_archived(a, args.force)])} 篇待存）")
+    done = len(archived) if not args.dry_run else 0
+    todo = len([a for a in articles if not is_archived(a)]) if not args.dry_run else 0
+    print(f"\n✅ 完成。共存档 {done} 篇，跳过 {skipped} 篇（dry-run 显示 {todo} 篇待存）")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,64 @@
+<!-- 我给AI装上了外挂，它能自动帮我搞副业 -->
+<section style="font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Roboto, &#39;Helvetica Neue&#39;, Arial, sans-serif;font-size: 16px;color: #333;line-height: 1.8;padding: 20px;background: linear-gradient(180deg, #fdf4ff 0%, #faf5ff 50%, #f5f3ff 100%);">
+<hr style="border: none;height: 2px;background: linear-gradient(90deg, #ec4899, #8b5cf6, #3b82f6);margin: 30px 0;border-radius: 1px;"  />
+<p style="margin: 15px 0;text-align: justify;">那天晚上我把链接丢给微信小龙虾。</p>
+<p style="margin: 15px 0;text-align: justify;">一个小红书笔记，19张图，正文全在图里。</p>
+<p style="margin: 15px 0;text-align: justify;">我去倒了杯水。</p>
+<p style="margin: 15px 0;text-align: justify;">回来的时候，它已经把19张图全部读完了，整理成文档，还附上了作者的核心观点。</p>
+<p style="margin: 15px 0;text-align: justify;">我就发了一个链接，什么都没多说。</p>
+<hr style="border: none;height: 2px;background: linear-gradient(90deg, #ec4899, #8b5cf6, #3b82f6);margin: 30px 0;border-radius: 1px;"  />
+<h2 style="font-size: 22px;font-weight: bold;color: #7c3aed;border-bottom: 2px solid #c4b5fd;padding-bottom: 8px;margin: 25px 0 15px 0;">1 它是怎么做到的</h2>
+<p style="margin: 15px 0;text-align: justify;">很多人觉得"那不就是丢个链接给AI吗"——不是的。</p>
+<p style="margin: 15px 0;text-align: justify;">这背后是一套我给它写的"工作流程"，英文叫 Skill。</p>
+<p style="margin: 15px 0;text-align: justify;">打个比方：</p>
+<p style="margin: 15px 0;text-align: justify;">你到一个新公司，老板让你"去对接一下供应商"，你一头雾水。但如果有份SOP，写清楚第一步联系谁、第二步确认什么——你就能直接上手。</p>
+<p style="margin: 15px 0;text-align: justify;">我给AI装了一个"小红书Skill"。遇到这类任务，它知道按什么步骤走：先识别图片内容，再提取文字，最后整理存档。</p>
+<p style="text-align: center;margin: 20px 0;"><img alt="090709-ece9" style="max-width: 100%;border-radius: 8px;box-shadow: rgba(0, 0, 0, 0.1) 0px 2px 8px;height: auto !important;" data-type="png" data-ratio="2.1675925925925927" data-w="1080" data-src="https://mmbiz.qpic.cn/mmbiz_png/zejTquZtCCoRzjtjoU85zsCeaHh5ZoWYAbnic2PO5Pey1m5MwUUpulvsUU6KmUOWdmqMjeev7VtbwkKNFnvFFsCYzWB1CibO83Y82J0EOAibPc/640?wx_fmt=png"  /></p><p style="text-align: center;color: #999;font-size: 13px;margin-bottom: 20px;"></p>
+<hr style="border: none;height: 2px;background: linear-gradient(90deg, #ec4899, #8b5cf6, #3b82f6);margin: 30px 0;border-radius: 1px;"  />
+<h2 style="font-size: 22px;font-weight: bold;color: #7c3aed;border-bottom: 2px solid #c4b5fd;padding-bottom: 8px;margin: 25px 0 15px 0;">2 它会自己绕路</h2>
+<p style="margin: 15px 0;text-align: justify;">但光有Skill还不够。</p>
+<p style="margin: 15px 0;text-align: justify;">真正跑起来，你会发现：<strong style="font-weight: bold;color: #6d28d9;">计划赶不上变化</strong>。</p>
+<p style="margin: 15px 0;text-align: justify;">那天它读取小红书的时候，遇到了"反爬虫"——就是网站的防抓取机制，直接把接口封了。</p>
+<p style="margin: 15px 0;text-align: justify;">它第一反应是：换工具。</p>
+<p style="margin: 15px 0;text-align: justify;">试了Jina，试了Playwright（一个浏览器自动化工具），都被挡住了。</p>
+<p style="margin: 15px 0;text-align: justify;">最后它想起来：之前扫码登录的时候，存了一份"门禁卡"（Cookie），相当于网站的登录状态。</p>
+<p style="margin: 15px 0;text-align: justify;">它用这张门禁卡，像真人一样打开页面，从页面状态里直接提取数据。</p>
+<p style="margin: 15px 0;text-align: justify;">成了。</p>
+<p style="text-align: center;margin: 20px 0;"><img alt="090711-6ff5" style="max-width: 100%;border-radius: 8px;box-shadow: rgba(0, 0, 0, 0.1) 0px 2px 8px;height: auto !important;" data-ratio="2.1675925925925927" data-w="1080" data-src="https://mmbiz.qpic.cn/mmbiz_png/zejTquZtCCqLwHwEgok8ibn3MdSAAKm2NUuUuS4HPEgicOCAvIdbHTLLkeMaxycDLXbDCz6cN65BicL9TuVRyfk4UhsILVdWDOBI0aScnjrOds/640?from=appmsg"  /></p><p style="text-align: center;color: #999;font-size: 13px;margin-bottom: 20px;"></p>
+<hr style="border: none;height: 2px;background: linear-gradient(90deg, #ec4899, #8b5cf6, #3b82f6);margin: 30px 0;border-radius: 1px;"  />
+<h2 style="font-size: 22px;font-weight: bold;color: #7c3aed;border-bottom: 2px solid #c4b5fd;padding-bottom: 8px;margin: 25px 0 15px 0;">3 它会随机应变</h2>
+<p style="margin: 15px 0;text-align: justify;">这还没完。</p>
+<p style="margin: 15px 0;text-align: justify;">我让它转录一个视频，Whisper（语音识别AI）内存不够，直接崩了。</p>
+<p style="margin: 15px 0;text-align: justify;">它没有卡在那里等我。</p>
+<p style="margin: 15px 0;text-align: justify;">自己决定：换Gemini（另一个AI模型）试试。</p>
+<p style="margin: 15px 0;text-align: justify;">结果Gemini不仅跑通了，还比Whisper更快。</p>
+<p style="margin: 15px 0;text-align: justify;"><strong style="font-weight: bold;color: #6d28d9;">我什么都没操作。</strong></p>
+<p style="margin: 15px 0;text-align: justify;">这还没完。</p>
+<p style="margin: 15px 0;text-align: justify;">它告诉我，登录凭证存的位置不太安全，系统清理的时候可能会掉线。</p>
+<p style="margin: 15px 0;text-align: justify;">我还没来得及说什么，它已经把14个核心凭证全部备份到了我指定的地方。</p>
+<p style="margin: 15px 0;text-align: justify;">它不只是完成任务，它还会替我想隐患。</p>
+<p style="text-align: center;margin: 20px 0;"><img alt="090714-1f56" style="max-width: 100%;border-radius: 8px;box-shadow: rgba(0, 0, 0, 0.1) 0px 2px 8px;height: auto !important;" data-ratio="1.6080178173719377" data-w="898" data-src="https://mmbiz.qpic.cn/mmbiz_png/zejTquZtCCr5puWaka6fQmuYSYcKyL8iahBjI3GsjNVfS0viahVS1RIoGpO5Kt9kbt0TibSvGBIyENkBbO3cLibpTw5iarFp0ngVL2nSmeYiaHa5A/640?from=appmsg"  /></p><p style="text-align: center;color: #999;font-size: 13px;margin-bottom: 20px;"></p>
+<hr style="border: none;height: 2px;background: linear-gradient(90deg, #ec4899, #8b5cf6, #3b82f6);margin: 30px 0;border-radius: 1px;"  />
+<h2 style="font-size: 22px;font-weight: bold;color: #7c3aed;border-bottom: 2px solid #c4b5fd;padding-bottom: 8px;margin: 25px 0 15px 0;">4 普通人和高手的区别</h2>
+<p style="margin: 15px 0;text-align: justify;">后来我又丢了一篇毛选笔记给它。</p>
+<p style="margin: 15px 0;text-align: justify;">它读完19张图之后，总结了一句话：</p>
+<blockquote style="border-left: 4px solid #c084fc;padding: 15px 20px;margin: 20px 0;background: rgba(192, 132, 252, 0.1);color: #6b21a8;border-radius: 0 8px 8px 0;"><p style="margin: 0;text-align: justify;">普通人做事像救火队员，哪儿有火去哪儿。高手做事牵牛要牵牛鼻子，找到主要矛盾。</p></blockquote>
+<p style="margin: 15px 0;text-align: justify;">这就是"普通人用AI"和"高手用AI"的区别。</p>
+<p style="margin: 15px 0;text-align: justify;">普通人用AI，是问一句答一句，用完就结束。</p>
+<p style="margin: 15px 0;text-align: justify;">高手用AI，是把流程写成Skill，让它自己跑。遇到问题它会自己绕路，绕过之后它会记住，下次更快。</p>
+<p style="margin: 15px 0;text-align: justify;">普通人用AI，是一个人在战斗。</p>
+<p style="margin: 15px 0;text-align: justify;">高手用AI，是有了一支队伍。</p>
+<p style="text-align: center;margin: 20px 0;"><img alt="090713-1ce1" style="max-width: 100%;border-radius: 8px;box-shadow: rgba(0, 0, 0, 0.1) 0px 2px 8px;height: auto !important;" data-ratio="1.6378132118451025" data-w="878" data-src="https://mmbiz.qpic.cn/mmbiz_png/zejTquZtCCriac5ohicJlawHicmAnqibQc1JctdUoQXsPUkITLmwkxjaA8cAUSgInsLoq83TWQYRzZTMiaWPMibbRwEdicwITicy81ga8g8cueU9twk/640?from=appmsg"  /></p><p style="text-align: center;color: #999;font-size: 13px;margin-bottom: 20px;"></p>
+<hr style="border: none;height: 2px;background: linear-gradient(90deg, #ec4899, #8b5cf6, #3b82f6);margin: 30px 0;border-radius: 1px;"  />
+<h2 style="font-size: 22px;font-weight: bold;color: #7c3aed;border-bottom: 2px solid #c4b5fd;padding-bottom: 8px;margin: 25px 0 15px 0;">5&nbsp;<span style="letter-spacing: 0.034em;">&nbsp;AI时代，什么最值钱</span></h2>
+<p style="margin: 15px 0;text-align: justify;">那天我看着它发给我的汇总，突然意识到一件事：</p>
+<blockquote style="border-left: 4px solid #c084fc;padding: 15px 20px;margin: 20px 0;background: rgba(192, 132, 252, 0.1);color: #6b21a8;border-radius: 0 8px 8px 0;"><p style="margin: 0;text-align: justify;">我最值钱的能力，不是AI能帮我做什么。是我知道该给AI写什么样的Skill。</p></blockquote>
+<p style="margin: 15px 0;text-align: justify;">小红书 这类Skill，每一个都是我思考力的结晶。我把"怎么做"写清楚，AI就能帮我把"做"本身做完。</p>
+<p style="margin: 15px 0;text-align: justify;">这大概就是AI时代，人最值得投资的一种能力吧。</p>
+<hr style="border: none;height: 2px;background: linear-gradient(90deg, #ec4899, #8b5cf6, #3b82f6);margin: 30px 0;border-radius: 1px;"  />
+<p style="margin: 15px 0;text-align: justify;">你有想让它读但懒得读的东西吗？</p>
+<p style="margin: 15px 0;text-align: justify;">评论区聊聊：</p>
+<p style="margin: 15px 0;text-align: justify;">你的日常工作中，哪类事情最值得写成Skill？</p>
+<p style="margin: 30px 0 0;font-size: 14px;color: #999;text-align: center;line-height: 1.8;border-top: 1px solid #eee;padding-top: 20px;">我是宇龙，一个用 AI 搞副业的打工人。</p>
+
+</section><p style="display: none;"><mp-style-type data-value="10000"></mp-style-type></p>

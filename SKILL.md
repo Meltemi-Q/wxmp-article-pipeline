@@ -85,33 +85,42 @@ Step 3：推送草稿箱
 
 ## 二、历史文章下载（维护已发布存档）
 
-### 2.1 查看文章列表
+### 2.1 存档结构（每篇文章一个文件夹）
+```
+archives/published/YYYY-MM-DD-标题slug/
+  published.html   ← 微信发布版原文（真实渲染HTML，含样式+图片）
+  content.md      ← 净化版Markdown（原写作稿，对比用）
+```
+
+### 2.2 查看文章列表
 ```bash
-cd skills/wxmp-wxdown && python3 scripts/wxdown-manage.py articles findyi --size 10
+cd /root/.openclaw/skills/wxmp-wxdown && python3 scripts/wxdown-manage.py articles findyi --size 10
 ```
 
-### 2.2 下载已发布文章
+### 2.3 下载已发布文章（html + md 双版本）
 ```bash
-cd skills/wxmp-wxdown && python3 scripts/wxdown-manage.py download "<url>" --format md > ../wxmp-article-pipeline/references/archives/published/<date>-slug-published.md
+cd /root/.openclaw/skills/wxmp-article-pipeline
+python3 scripts/archive_articles.py                  # 拉全部（跳过已存档）
+python3 scripts/archive_articles.py --since 2026-03-01  # 只拉指定日期之后的
+python3 scripts/archive_articles.py --force           # 强制覆盖
+python3 scripts/archive_articles.py --dry-run          # 只看计划不下载
+python3 scripts/archive_articles.py --latest          # 只拉最新一篇
 ```
 
-### 2.3 存档命名规范
+### 2.4 存档命名规范
 ```
-<date>-<slug>-published.md    ← 已发布文章（从微信拉回）
-<date>-<slug>.md              ← 废弃草稿
+YYYY-MM-DD-slug/              ← 文章文件夹（date + 标题前12字）
+  published.html              ← 发布版原文（微信真实HTML）
+  content.md                  ← 原写作稿（对比用）
 ```
 
-### 2.4 更新索引
-下载后立即更新 `references/HISTORICAL-ARTICLES.md`：
-- 在"已发布文章"表格添加一行（日期、标题、链接、摘要）
-- 在"草稿存档"表格标记草稿状态
+### 2.5 更新索引
+下载后自动更新 `references/HISTORICAL-ARTICLES.md`，在已发布文章表格添加一行。
 
-### 2.5 首次初始化（把所有历史文章全部拉回来）
+### 2.6 首次初始化（把所有历史文章全部拉回来）
 ```bash
-# 在 wxmp-wxdown 目录下执行
-for url in "https://mp.weixin.qq.com/s/..." "https://mp.weixin.qq.com/s/..."; do
-  python3 scripts/wxdown-manage.py download "$url" --format md > ../wxmp-article-pipeline/references/archives/published/$(date +%Y-%m-%d)-slug-published.md
-done
+cd /root/.openclaw/skills/wxmp-article-pipeline
+python3 scripts/archive_articles.py --force
 ```
 
 ---
@@ -349,3 +358,41 @@ response = requests.post(
 ## 十、主题扩展
 
 当前默认主题为**紫色主题**。后续如需新增主题，在本文件"三、渲染规则"中新增对应章节即可，通过参数 `--theme` 切换。
+
+---
+
+## 十一、存档管理（发布后触发）
+
+存档目的：保留原稿（content.md）和发布版（published.html），方便后续对比修改。
+
+### 触发点一：发布好了（刚发布完）
+
+**触发条件**：用户说"发布好了"、"发完了"、"发布了"。
+
+**操作**：用 `archive_articles.py --latest` 拉取最新一篇文章，存档 html + md。
+
+**判断逻辑**：
+1. 调用 `wxdown articles findyi --size 1` 获取最新文章标题+链接
+2. 与 HISTORICAL-ARTICLES.md 最新行对比
+3. 如果链接不同 → 是新发布的 → 下载存档
+4. 如果链接相同 → 已是最新存档 → 告知"已存档，无需重复拉取"
+
+### 触发点二：写新文章前（检查漏拉）
+
+**触发条件**：用户说"写"、"开始写"、"写文章"。
+
+**操作**：检查 HISTORICAL-ARTICLES.md 里所有文章，找出还没有 `published.html` 的文章，先批量拉取，再开始写。
+
+**操作步骤**：
+1. 读取 HISTORICAL-ARTICLES.md，遍历所有文章链接
+2. 对每篇检查 `archives/published/YYYY-MM-DD-slug/published.html` 是否存在
+3. 缺失的批量下载（用 `archive_articles.py --force` 或逐篇下载）
+4. 完成后汇报"已补拉 X 篇历史文章，现在开始写"
+5. 然后按正常流程（一～十）走
+
+### 两种触发对比
+
+| 触发点 | 场景 | 操作 |
+|--------|------|------|
+| 发布好了 | 用户刚点发布 | 立刻拉最新一篇 `--latest` |
+| 写文章前 | 用户要写新文章 | 先检查+补拉漏掉的历史文章，再开始写 |
