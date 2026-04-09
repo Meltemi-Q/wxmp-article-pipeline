@@ -396,3 +396,21 @@ response = requests.post(
 |--------|------|------|
 | 发布好了 | 用户刚点发布 | 立刻拉最新一篇 `--latest` |
 | 写文章前 | 用户要写新文章 | 先检查+补拉漏掉的历史文章，再开始写 |
+
+### 对比功能（对比原稿和发布版差异）
+
+触发条件：用户说"对比一下"、"改了什么"、"diff"。
+
+```bash
+cd /root/.openclaw/skills/wxmp-article-pipeline
+python3 scripts/diff_articles.py --list                # 列出所有可对比的文章
+python3 scripts/diff_articles.py "2026-04-09"         # 模糊匹配（日期开头）
+python3 scripts/diff_articles.py "2026-04-09-完整文件夹名"  # 精确匹配
+```
+
+输出内容：
+- 发布版新增了哪些句子（发布时加的内容）
+- 原稿有但发布版没有的句子（发布时删改的内容）
+- 两版前100字预览
+
+用于：检查发布后实际改了什么，评估改稿效果。
