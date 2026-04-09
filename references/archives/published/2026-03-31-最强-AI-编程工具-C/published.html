@@ -1,0 +1,81 @@
+<!-- 最强 AI 编程工具 Claude Code 被扒了个底朝天，我看到了 AI 行业不想让你知道的事 -->
+<section style="font-family: -apple-system, BlinkMacSystemFont, &#39;Segoe UI&#39;, Roboto, &#39;Helvetica Neue&#39;, Arial, sans-serif;font-size: 16px;color: #333;line-height: 1.8;padding: 20px;background: linear-gradient(180deg, #fdf4ff 0%, #faf5ff 50%, #f5f3ff 100%);">
+<p style="margin: 15px 0;text-align: justify;">3 月 31 号，有人在推特上爆了个大瓜：</p>
+<p style="margin: 15px 0;text-align: justify;">Anthropic 的 Claude Code——目前公认最强的 AI 编程助手——源码泄露了。</p>
+<p style="margin: 15px 0;text-align: justify;">怎么泄的？简单说就是，他们在发布软件的时候，不小心把"设计图纸"也打包进去了。就好比你卖房子，结果把施工蓝图也塞给了买家。</p>
+<p style="text-align: center;margin: 20px 0;"><img alt="推特爆料" style="max-width: 100%;border-radius: 8px;box-shadow: rgba(0, 0, 0, 0.1) 0px 2px 8px;height: auto !important;" data-ratio="2.173174872665535" data-w="589" data-src="https://mmbiz.qpic.cn/sz_mmbiz_jpg/zejTquZtCCoax8mOwwibJhY3uftlfhOBoomC1iaxHELZUW90AOvDd1ib9Rl5ibpWzBkXAicgvM0VYTxjEVyuCoedTic2PcQsWpvCguo3lLeQMx5Bw/640?from=appmsg"  /></p>
+<p style="text-align: center;color: #999;font-size: 13px;margin-bottom: 20px;">@Fried_rice 在推特上爆料 Claude Code 源码泄露</p>
+<p style="margin: 15px 0;text-align: justify;">1902 份文件，35MB 的程序代码，全部暴露。</p>
+<p style="margin: 15px 0;text-align: justify;">我让我的 AI 助手小龙虾一个文件一个文件地扒，扒完给我整理了一份报告。</p>
+<p style="text-align: center;margin: 20px 0;"><img alt="源码目录" style="max-width: 100%;border-radius: 8px;box-shadow: rgba(0, 0, 0, 0.1) 0px 2px 8px;height: auto !important;" data-ratio="0.7685185185185185" data-w="1080" data-src="https://mmbiz.qpic.cn/mmbiz_jpg/zejTquZtCCp1ViaGWV6rvVhIs1JVwuSvZicjD1eO255LSjZRO80U0bvkkFqFrkXMSvkk3naqWCt7FGJSdr7jibNArlVcVIAb98xBAz610pmOYM/640?from=appmsg"  /></p>
+<p style="text-align: center;color: #999;font-size: 13px;margin-bottom: 20px;">1902 份文件，35MB 程序代码</p>
+<p style="margin: 15px 0;text-align: justify;">扒完之后我最大的感受只有一句话：</p>
+<blockquote style="border-left: 4px solid #c084fc;padding: 15px 20px;margin: 20px 0;background: rgba(192, 132, 252, 0.1);color: #6b21a8;border-radius: 0 8px 8px 0;"><p style="margin: 0;">造 AI 的人，比谁都不信 AI。</p></blockquote>
+<h2 style="font-size: 22px;font-weight: bold;color: #7c3aed;border-bottom: 2px solid #c4b5fd;padding-bottom: 8px;margin: 25px 0 15px 0;">PART 01 · AI 说"我做完了"，你敢信吗？</h2>
+<p style="margin: 15px 0;text-align: justify;">Claude Code 内部有一个特殊角色，叫"验证员"。</p>
+<p style="margin: 15px 0;text-align: justify;">翻译成人话就是：<strong style="font-weight: bold;color: #6d28d9;">一个专门盯着其他 AI 干活的"监工"。</strong></p>
+<p style="margin: 15px 0;text-align: justify;">为什么需要这么个东西？因为 Anthropic 被自家 AI 坑过太多次了。</p>
+<p style="margin: 15px 0;text-align: justify;">AI 写完代码说"搞定了"——一验证，压根没改。</p>
+<p style="margin: 15px 0;text-align: justify;">AI 检查了一遍说"没问题"——一运行，直接报错。</p>
+<p style="margin: 15px 0;text-align: justify;">所以他们在监工的工作手册里，直接列出了 AI 最爱用的 5 个偷懒借口：</p>
+<p style="margin: 15px 0;text-align: justify;"><strong style="font-weight: bold;color: #6d28d9;">"代码看起来是对的"</strong> ——看起来对不叫验证，你去运行它。</p>
+<p style="margin: 15px 0;text-align: justify;"><strong style="font-weight: bold;color: #6d28d9;">"之前的测试已经通过了"</strong> ——之前测试的也是 AI，你信它？自己重新验。</p>
+<p style="margin: 15px 0;text-align: justify;"><strong style="font-weight: bold;color: #6d28d9;">"这大概率没问题"</strong> ——大概率不叫验证过，去运行。</p>
+<p style="margin: 15px 0;text-align: justify;"><strong style="font-weight: bold;color: #6d28d9;">"我没有工具"</strong> ——你查过有没有工具吗？</p>
+<p style="margin: 15px 0;text-align: justify;"><strong style="font-weight: bold;color: #6d28d9;">"这个会花很长时间"</strong> ——不是你该操心的。</p>
+<p style="margin: 15px 0;text-align: justify;">然后加了一句硬规定：<strong style="font-weight: bold;color: #6d28d9;">如果你发现自己在写解释而不是动手，停下来。去动手。</strong></p>
+<p style="text-align: center;margin: 20px 0;"><img alt="监工AI" style="max-width: 100%;border-radius: 8px;box-shadow: rgba(0, 0, 0, 0.1) 0px 2px 8px;height: auto !important;" data-ratio="0.5574074074074075" data-w="1080" data-src="https://mmbiz.qpic.cn/mmbiz_jpg/zejTquZtCCrsPrZIWWS3uQAyk53vkdxDQ2dVvpBf6HCrsrXN3jY8EabLm193AVXrFfzLhhXqZpQaWxsN0mfKrI0ibbk7MebTu70OaibqVCayo/640?from=appmsg"  /></p>
+<p style="text-align: center;color: #999;font-size: 13px;margin-bottom: 20px;">AI 监工盯着 AI 干活</p>
+<p style="margin: 15px 0;text-align: justify;">每次验证必须交三样东西：做了什么操作、系统反馈了什么、结果是通过还是失败。</p>
+<p style="margin: 15px 0;text-align: justify;">光看不算。转述不算。必须拿出原始证据。</p>
+<blockquote style="border-left: 4px solid #c084fc;padding: 15px 20px;margin: 20px 0;background: rgba(192, 132, 252, 0.1);color: #6b21a8;border-radius: 0 8px 8px 0;"><p style="margin: 0;">说白了，Anthropic 对自家 AI 的态度就是：你说什么我都不信，拿证据来。</p></blockquote>
+<h2 style="font-size: 22px;font-weight: bold;color: #7c3aed;border-bottom: 2px solid #c4b5fd;padding-bottom: 8px;margin: 25px 0 15px 0;">PART 02 · 一个肉眼看不见的字符，骗过了整套安全系统</h2>
+<p style="margin: 15px 0;text-align: justify;">Claude Code 能让 AI 直接在你电脑上执行操作——听起来方便，但也意味着如果有人想搞事，可以在代码里藏一条恶意指令，让 AI 替你执行。</p>
+<p style="margin: 15px 0;text-align: justify;">所以 Anthropic 写了 2592 行安全代码，搭了 23 道检查关卡。每一条指令都得全部过关才能放行。</p>
+<p style="text-align: center;margin: 20px 0;"><img alt="隐形攻击" style="max-width: 100%;border-radius: 8px;box-shadow: rgba(0, 0, 0, 0.1) 0px 2px 8px;height: auto !important;" data-ratio="0.5574074074074075" data-w="1080" data-src="https://mmbiz.qpic.cn/mmbiz_jpg/zejTquZtCCpGU7Hjxa5iaKtiboLSpjgf3c9srFPM3f1Cc7HGI1w8QCbEsXcegdXqs2clVS1EDnEL7LsZEDuNbG2iaia0GsQKXabMnCkAdPMr9KE/640?from=appmsg"  /></p>
+<p style="text-align: center;color: #999;font-size: 13px;margin-bottom: 20px;">一个看不见的字符，两套系统的理解完全不同</p>
+<p style="margin: 15px 0;text-align: justify;">这些关卡防的不是那种一眼就能看出来的危险操作——那太初级了。</p>
+<p style="margin: 15px 0;text-align: justify;">它防的是什么呢？<strong style="font-weight: bold;color: #6d28d9;">同一条指令，两个检查员理解不一样的情况。</strong></p>
+<p style="margin: 15px 0;text-align: justify;">打个比方：你写了一张请假条，HR 看了觉得"只请周一"，但系统录入的时候变成了"请整周"。</p>
+<p style="margin: 15px 0;text-align: justify;">Claude Code 也有这个问题。它的安全检查程序和实际执行程序是两套系统，两套系统之间的微小理解偏差，就是攻击者的可乘之机。</p>
+<p style="margin: 15px 0;text-align: justify;">举个真实的例子：</p>
+<p style="margin: 15px 0;text-align: justify;">有人在一条指令里藏了一个回车符——就是键盘上 Enter 键产生的那个字符，肉眼完全看不到。</p>
+<p style="margin: 15px 0;text-align: justify;">安全检查程序把这个回车符当成了一个分隔符号，检查结果：没问题，放行。</p>
+<p style="margin: 15px 0;text-align: justify;">但执行程序不认这个回车符，直接把前后两段连在一起当成一整条指令跑了——跑的是一条完全不同的危险操作。</p>
+<p style="margin: 15px 0;text-align: justify;">一个看不见的字符。安全系统以为你在改时区设置，实际上你的电脑在悄悄下载恶意程序。</p>
+<blockquote style="border-left: 4px solid #c084fc;padding: 15px 20px;margin: 20px 0;background: rgba(192, 132, 252, 0.1);color: #6b21a8;border-radius: 0 8px 8px 0;"><p style="margin: 0;">2592 行安全代码，23 道关卡，就为了防这种"差之毫厘"的攻击。代码里每条检查规则旁边都写着详细注释，解释为什么用这个写法不用那个——因为换一种写法，就可能多放过一个危险字符。这种偏执程度，我在其他软件里从没见过。</p></blockquote>
+<h2 style="font-size: 22px;font-weight: bold;color: #7c3aed;border-bottom: 2px solid #c4b5fd;padding-bottom: 8px;margin: 25px 0 15px 0;">PART 03 · AI 的记忆力，其实很差</h2>
+<p style="margin: 15px 0;text-align: justify;">你可能觉得 AI 记性好，什么都记得住。</p>
+<p style="margin: 15px 0;text-align: justify;">但 Claude Code 的设计告诉我们一个反直觉的事实：<strong style="font-weight: bold;color: #6d28d9;">给 AI 的信息越多，它反而越容易犯蠢。</strong></p>
+<p style="margin: 15px 0;text-align: justify;">它的记忆系统是这么工作的：</p>
+<p style="margin: 15px 0;text-align: justify;">每次你跟 Claude Code 对话，系统会先去翻一遍你之前存下来的所有笔记——可能有几十上百个文件。</p>
+<p style="margin: 15px 0;text-align: justify;">但它绝不会把所有笔记一股脑全塞给 AI。</p>
+<p style="text-align: center;margin: 20px 0;"><img alt="记忆秘书" style="max-width: 100%;border-radius: 8px;box-shadow: rgba(0, 0, 0, 0.1) 0px 2px 8px;height: auto !important;" data-ratio="0.5574074074074075" data-w="1080" data-src="https://mmbiz.qpic.cn/sz_mmbiz_jpg/zejTquZtCCqpALATnG5Qzs1JWo4CsHuWqm9CLkw2bFNrsPLDiajlnIECsWRAy0aCbYrHytAQTuPRzfBCnicOPgEX8dBA0icxo1xHk3PKsnpSw8/640?from=appmsg"  /></p>
+<p style="text-align: center;color: #999;font-size: 13px;margin-bottom: 20px;">秘书 AI 帮主力挑最相关的 5 份笔记</p>
+<p style="margin: 15px 0;text-align: justify;">它会先派一个<strong style="font-weight: bold;color: #6d28d9;">廉价的小助手当"秘书"</strong>，把你的问题和笔记清单一起给这个秘书看，让秘书从里面挑出最多 5 个最相关的。</p>
+<p style="margin: 15px 0;text-align: justify;">然后只把这精选的 5 个笔记交给真正干活的主力 AI。</p>
+<p style="margin: 15px 0;text-align: justify;">用一个便宜的助手做筛选，贵的主力只看精华。</p>
+<p style="margin: 15px 0;text-align: justify;">而且核心记忆文件有硬性上限：最多 200 行。超了直接截掉，还会追加一条警告提醒你清理。</p>
+<blockquote style="border-left: 4px solid #c084fc;padding: 15px 20px;margin: 20px 0;background: rgba(192, 132, 252, 0.1);color: #6b21a8;border-radius: 0 8px 8px 0;"><p style="margin: 0;">不给记忆无限膨胀的机会。知道什么该记、什么该忘，这才是真正的聪明。</p></blockquote>
+<h2 style="font-size: 22px;font-weight: bold;color: #7c3aed;border-bottom: 2px solid #c4b5fd;padding-bottom: 8px;margin: 25px 0 15px 0;">PART 04 · AI 叫分身帮忙，账单差点爆炸</h2>
+<p style="margin: 15px 0;text-align: justify;">AI 编程经常要同时处理好几件事：一边改 bug，一边写测试，一边更新文档。</p>
+<p style="margin: 15px 0;text-align: justify;">Claude Code 的做法是让主力 AI "分身"——复制出好几个副本，每个负责一件事。</p>
+<p style="margin: 15px 0;text-align: justify;">但问题来了：<strong style="font-weight: bold;color: #6d28d9;">每多一个分身，就要多付一份钱。</strong></p>
+<p style="margin: 15px 0;text-align: justify;">打个比方。你跟 Claude Code 聊了半天，积累了相当于 5 万个字的对话内容。现在分出 5 个副本，每个副本都得读完这 5 万个字才能理解你们之前在干嘛。</p>
+<p style="margin: 15px 0;text-align: justify;">如果不做优化，就是 5 × 5 万 = 25 万个字的阅读费。</p>
+<p style="margin: 15px 0;text-align: justify;">Claude Code 的工程师想了个很聪明的办法：</p>
+<p style="margin: 15px 0;text-align: justify;"><strong style="font-weight: bold;color: #6d28d9;">让所有分身的"阅读材料"前半段完全一模一样。</strong> 区别只在最后几行——每个分身各自的具体任务不同。</p>
+<p style="margin: 15px 0;text-align: justify;">Anthropic 的系统有个功能：如果多个请求的前半段相同，只收一次钱。这意味着 5 个分身实际只付 1 份"阅读费"，外加每个分身最后那几句任务描述。</p>
+<p style="margin: 15px 0;text-align: justify;">从 25 万个字直接降到 5 万多一点。<strong style="font-weight: bold;color: #6d28d9;">省了 80%。</strong></p>
+<blockquote style="border-left: 4px solid #c084fc;padding: 15px 20px;margin: 20px 0;background: rgba(192, 132, 252, 0.1);color: #6b21a8;border-radius: 0 8px 8px 0;"><p style="margin: 0;">每个分身还被立了一堆规矩：不准再叫分身（防止无限套娃），不准说废话，不准反过来问问题，汇报不超过 500 字，干完就走。简洁到残暴。</p></blockquote>
+<hr style="border: none;height: 2px;background: linear-gradient(90deg, #ec4899, #8b5cf6, #3b82f6);margin: 30px 0;border-radius: 1px;"  />
+<p style="margin: 15px 0;text-align: justify;">扒完这 1902 份文件，我最大的感受是：</p>
+<p style="margin: 15px 0;text-align: justify;"><strong style="font-weight: bold;color: #6d28d9;">好的 AI 产品，80% 的工程量不是在"让 AI 更聪明"，而是在"让 AI 不犯蠢"。</strong></p>
+<p style="margin: 15px 0;text-align: justify;">2592 行安全代码防恶意指令。验证监工防 AI 撒谎。记忆系统防信息过载。分身机制防账单爆炸。</p>
+<p style="margin: 15px 0;text-align: justify;"><strong style="font-weight: bold;color: #6d28d9;">聪明是算法给的。可靠是工程师一行一行代码写出来的。</strong></p>
+<p style="margin: 15px 0;text-align: justify;">这大概是 AI 行业不太愿意公开说的事：模型能力的上限靠烧钱堆出来，但产品体验的下限，全靠这些"脏活累活"撑着。</p>
+<p style="margin: 15px 0;text-align: justify;">下次有人跟你说"AI 马上就要取代程序员了"，你可以告诉他：</p>
+<blockquote style="border-left: 4px solid #c084fc;padding: 15px 20px;margin: 20px 0;background: rgba(192, 132, 252, 0.1);color: #6b21a8;border-radius: 0 8px 8px 0;"><p style="margin: 0;">连造 AI 的人都得写 2592 行代码来防自家 AI 搞事情，这活儿还早着呢。</p></blockquote>
+<p style="margin: 15px 0;text-align: justify;">你觉得 AI 最不靠谱的地方是什么？评论区聊聊 👇</p>
+
+</section><p style="display: none;"><mp-style-type data-value="10000"></mp-style-type></p>

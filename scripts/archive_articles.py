@@ -98,10 +98,10 @@ def archive_foldername(article: dict) -> str:
 
 
 def is_archived(article: dict) -> bool:
-    """检查是否已存档（以文件夹是否存在为准）"""
+    """检查是否已存档（published.html 存在即为完整存档）"""
     folder = archive_foldername(article)
     folder_path = ARCHIVE_DIR / folder
-    return folder_path.exists() and (folder_path / "published.html").exists()
+    return (folder_path / "published.html").exists()
 
 
 def download_both(url: str) -> tuple[str, str]:
