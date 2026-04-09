@@ -32,23 +32,38 @@ description: >
 
 ### 文章流程（news）
 ```
-输入（Markdown + 图片）
+输入（素材/图片）
+  ↓
+Step 0（必读）：
+  │  读写作风格指南：references/writing-style.md
+  │  读术语表：references/GLOSSARY.md
+  │  读最近3篇历史文章：references/HISTORICAL-ARTICLES.md
   ↓
 Step 1：逐张看图，确认内容与段落对应关系
   ↓
-Step 2：上传图片到微信
+Step 2：存档图片识别结果为 MD（如 ClawBot 已有识别结果，保存到 archives/）
+  ↓
+Step 3：列大纲给用户确认（标题 + PART结构 + 图片选择）
+  ↓
+Step 4：用户确认后写全文
+  ↓
+Step 5：上传图片到微信
   │  正文图片 → uploadimg → mmbiz.qpic.cn URL
   │  封面图   → add_material → thumb_media_id
   ↓
-Step 3：渲染紫色主题 HTML（含 h2 标题、blockquote 金句、图注）
+Step 6：渲染紫色主题 HTML（含 PART 标题、blockquote 金句、图注）
   ↓
-Step 4：三项验证（标题/图片/正文长度）
+Step 7：三项验证（标题/图片/正文长度）
   ↓
-Step 5：去重检查（batchget 草稿箱，确认同标题不存在）
+Step 8：去重检查（batchget 草稿箱，确认同标题不存在）
   ↓
-Step 6：推送草稿箱（draft/add，ensure_ascii=False）
+Step 9：推送草稿箱（draft/add，ensure_ascii=False）
   ↓
-Step 7：batchget 验证草稿已到账
+Step 10：batchget 验证草稿已到账
+  ↓
+Step 11：更新 HISTORICAL-ARTICLES.md（记录新草稿）
+  ↓
+Step 12：更新 REVISION-TRACKING.md（记录推送记录）
   ↓
 输出：report.json + 草稿 media_id
 ```
@@ -68,9 +83,42 @@ Step 3：推送草稿箱
 
 ---
 
-## 二、图片处理规则（最容易出错）
+## 二、历史文章下载（维护已发布存档）
 
-### 2.1 必须逐张看图确认
+### 2.1 查看文章列表
+```bash
+cd skills/wxmp-wxdown && python3 scripts/wxdown-manage.py articles findyi --size 10
+```
+
+### 2.2 下载已发布文章
+```bash
+cd skills/wxmp-wxdown && python3 scripts/wxdown-manage.py download "<url>" --format md > ../wxmp-article-pipeline/references/archives/published/<date>-slug-published.md
+```
+
+### 2.3 存档命名规范
+```
+<date>-<slug>-published.md    ← 已发布文章（从微信拉回）
+<date>-<slug>.md              ← 废弃草稿
+```
+
+### 2.4 更新索引
+下载后立即更新 `references/HISTORICAL-ARTICLES.md`：
+- 在"已发布文章"表格添加一行（日期、标题、链接、摘要）
+- 在"草稿存档"表格标记草稿状态
+
+### 2.5 首次初始化（把所有历史文章全部拉回来）
+```bash
+# 在 wxmp-wxdown 目录下执行
+for url in "https://mp.weixin.qq.com/s/..." "https://mp.weixin.qq.com/s/..."; do
+  python3 scripts/wxdown-manage.py download "$url" --format md > ../wxmp-article-pipeline/references/archives/published/$(date +%Y-%m-%d)-slug-published.md
+done
+```
+
+---
+
+## 三、图片处理规则（最容易出错）
+
+### 3.1 必须逐张看图确认
 
 **绝对不能凭文件名猜图片内容。**
 
@@ -79,7 +127,7 @@ Step 3：推送草稿箱
 2. 对应文章哪个段落
 3. 图注应该怎么写
 
-### 2.2 上传接口区分
+### 3.2 上传接口区分
 
 | 用途 | 接口 | 返回 | 作用 |
 |------|------|------|------|
@@ -88,7 +136,7 @@ Step 3：推送草稿箱
 
 **只有 `mmbiz.qpic.cn` 域名的图片才能在公众号正常显示。**
 
-### 2.3 封面图选择
+### 3.3 封面图选择
 
 - 封面图必须单独上传 `add_material`，获得 `media_id`
 - 封面一般选第一张有代表性的图，或专门设计的封面图
@@ -96,7 +144,7 @@ Step 3：推送草稿箱
 
 ---
 
-## 三、渲染规则（紫色主题）
+## 四、渲染规则（紫色主题）
 
 紫色主题是当前默认主题，基于已发布文章的真实样式提取。
 
@@ -195,7 +243,7 @@ Step 3：推送草稿箱
 
 ---
 
-## 四、推送前验证（必须全过才能推）
+## 五、推送前验证（必须全过才能推）
 
 ### ① 去重检查（新增！）
 
@@ -223,7 +271,7 @@ assert len(html.strip()) > 100
 
 ---
 
-## 五、推送草稿（关键：编码）
+## 六、推送草稿（关键：编码）
 
 **必须用 `ensure_ascii=False` + 手动编码：**
 
@@ -252,7 +300,7 @@ response = requests.post(
 
 ---
 
-## 六、常见踩坑速查
+## 七、常见踩坑速查
 
 | 坑 | 现象 | 解决 |
 |----|------|------|
@@ -264,10 +312,16 @@ response = requests.post(
 | 贴图用了文章 API | 格式错误 | 贴图用 `newspic`，文章用 `news` |
 | 标题太长 | API 报 `45003` | 文章 ≤ 64 字，贴图 ≤ 20 字 |
 | `<!-- 配图 -->` 残留 | HTML 出现注释文字 | 渲染前删掉所有 HTML 注释 |
+| PART 编号后面空着 | 只有"PART 1"没有描述 | PART 编号后必须加描述（如"PART 1 Skill是什么"） |
+| 擅自改标题 | 标题被加词/改词 | 用户确认什么标题就用什么，不自己改 |
+| 封面图自己想当然 | 封面图和用户意图不符 | 用户说用哪张就用哪张，不自己换 |
+| 编造 Skill 名 | 文章里写了不存在的 Skill | 只写实际存在的 Skill，没有的不准编 |
+| 改了内容不推送 | 本地改了但没推 | 直接推，让用户看草稿箱效果再反馈 |
+| 正文残留杂字（如"小红书"） | 渲染后HTML里多了乱文字 | 推送前 grep HTML 查残留文字，手动删掉 |
 
 ---
 
-## 七、凭据位置
+## 八、凭据位置
 
 ```
 /root/.openclaw/secrets/wxmp-yulong.env
@@ -277,14 +331,14 @@ response = requests.post(
 
 ---
 
-## 八、写作风格速查
+## 九、写作风格速查
 
-详见 WRITING-GUIDE.md 和 YULONG-VOICE.md。
+详见 `references/writing-style.md`（必须读）和 `references/GLOSSARY.md`（术语表）。
 
 **核心要点：**
 - 说人话，不说技术黑话
 - 口语化短句，像跟朋友发微信
-- H2 标题分段，不用 PART 编号
+- PART 编号分段（如"PART 1 Skill是什么"），编号后必须带描述，不能空着
 - 金句用 Blockquote 引用块
 - 每图必须有图注
 - 结尾不加手写签名，提到 AI 助手时点名 OpenClaw
@@ -292,6 +346,6 @@ response = requests.post(
 
 ---
 
-## 九、主题扩展
+## 十、主题扩展
 
 当前默认主题为**紫色主题**。后续如需新增主题，在本文件"三、渲染规则"中新增对应章节即可，通过参数 `--theme` 切换。
