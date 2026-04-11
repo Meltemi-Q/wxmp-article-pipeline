@@ -13,6 +13,52 @@ description: >
 
 ---
 
+## ⚠️ 最高优先级纪律（读这两条比读别的更重要）
+
+### 🚫 不要 git commit 内容变更
+
+**推草稿 / 改文章内容 / 改 review JSON / 改 draft meta / 换主题 都是数据操作，不是改项目，禁止 commit。**
+
+- ❌ `drafts/*/meta.json` 改 content → 不 commit
+- ❌ `review/*.json` 新增 / 修改 → 不 commit
+- ❌ `drafts/*/images/` 上传图片 → 不 commit
+- ✅ **唯一可以 commit 的情况**：你真的改了 `wxmp-studio/app.py`、`static/index.html`、`scripts/*.py` 这类**代码文件**，并且改动是**对所有文章通用**的改进（例如：加渲染器新特性、修 UI bug、新加 CLI 子命令）
+
+**为什么**：FastAPI 每次请求才读 `review/*.json` 和 `drafts/*/meta.json`，它们是"数据库行"。commit 内容会污染 git log，让后续回顾找不到真正的代码改动。过去 Hermes 给一篇 SBTI 做了 6 次 "终版" commit，就是这个反模式的典型。
+
+### 🚫 不要手写 inline HTML / 硬编码样式
+
+**所有样式都从主题 JSON 里来，单篇文章不允许手写 `<section style="...">...</section>` 塞进 review JSON 的 `html` 字段。**
+
+- ✅ 主题从 **`/api/themes`** 接口查（不是 `ls *.json`，不是凭记忆）— 返回的就是合法 `name` 列表
+- ✅ `add-draft` / `add-published` 自动走 `_render_markdown_with_mdnice_theme`（服务器端实时渲染），你只管传 `--theme 紫色渐变` 这种名字
+- ❌ 不要给 review JSON 的 `html` 字段手搓 HTML 字符串 — 那是 legacy 路径，只有最老的 SBTI 还在用
+- ❌ 不要发明新的 `theme_source`（只允许 `mdnice` 或 `jahseh`）
+- ❌ 如果你觉得现有主题都不合适：**停下来问用户要不要加新主题**，不要自己写 inline html 绕开
+
+**想加新主题？**：在 `/root/.openclaw/workspace-restore/docs/wxmp-themes/mdnice/{name}.json` 放一个 JSON 文件（参考 `紫色渐变.json` 的 schema），**不需要配套 .html**，立刻在 `/api/themes` 可见、任何文章都能用 `--theme {name}` 切。加新主题也**不需要 commit**（主题文件不属于 wxmp-studio 仓库，属于 workspace-restore）。
+
+### 🧊 用户触发词 → freeze-latest 流程
+
+当用户说以下任何一句，立即跑 `python3 /root/.openclaw/workspace/projects/wxmp-studio/scripts/review_helper.py freeze-latest`：
+
+- "抓一下刚发的"
+- "拽一下刚发的那篇"
+- "freeze latest"
+- "冻结最新发布"
+- "把刚发布的存档一下"
+
+这条命令一步到位：
+1. 调 `archive_articles.py --latest --json` 从公众号后台拉最新一篇的 HTML + MD 到 `references/archives/published/`
+2. 自动把归档路径作为 `source_type: published_archive` 加入 wxmp-studio review tab
+3. 返回 review id 和归档路径
+
+**幂等**：已归档过的文章重跑会 skip 下载但仍会刷新 review entry，不会出错。
+
+**失败场景**：wxdown cookie 过期（这时会报错，你看 stderr 里的 "unauthorized" 就是 cookie 要刷新了）。
+
+---
+
 ## 零、先判断类型
 
 | 类型 | 场景 | API | 排版 |
@@ -35,6 +81,11 @@ description: >
 输入（素材/图片）
   ↓
 Step 0（必读）：
+  │  ★ 先冻结上一篇已发布的文章为 golden 样本（on-demand 归档）：
+  │     python3 scripts/review_helper.py freeze-latest
+  │     → 自动调 archive_articles.py --latest --json 拉最新一篇
+  │     → 自动加入 wxmp-studio review tab 作为 published_archive
+  │     → 没有新文章要归档时会报错退出, 忽略继续即可
   │  读写作风格指南：references/writing-style.md
   │  读术语表：references/GLOSSARY.md
   │  读最近3篇历史文章：references/HISTORICAL-ARTICLES.md
@@ -414,3 +465,141 @@ python3 scripts/diff_articles.py "2026-04-09-完整文件夹名"  # 精确匹配
 - 两版前100字预览
 
 用于：检查发布后实际改了什么，评估改稿效果。
+
+---
+
+## 已渲染草稿 review tab — 数据操作（不是改项目）
+
+> ⚠️ **核心认知**：往「已渲染草稿」tab 加文章 **是数据操作，不是改项目**。
+> `review/*.json` 是 FastAPI 每次请求才读的纯数据文件 — **不需要 commit、不需要重启服务、不需要 push 任何代码**。
+> 把它当作"往一张表里 INSERT 一行"。
+
+### 🔑 唯一规则：二选一，没有中间地带
+
+**根据图片来源决定**：
+
+| 图片来源 | 用什么命令 | 图片引用方式 |
+|---|---|---|
+| 🟢 文章已发布到公众号 → wxdown 已抓存档 | `add-published` | 真实 `https://mmbiz.qpic.cn/...` URL（存档里就有） |
+| 🟡 本地草稿（未发布） | `add-draft` | 本地文件名 `![](062555-ae86.jpeg)`（draft images/ 目录里的文件） |
+
+**就这两条。没有第三条。** 不存在"我手写一个 mmbiz URL"或"我用 LLM 生成的 HTML"这种路径。
+
+### 🚫 严禁
+
+- ❌ **永远不要手写 `mmbiz.qpic.cn` URL** — 它们只能来自两个地方：wxdown 抓的 published.html，或者 wxmp 上传 API 的真实返回值。**永远不要从你脑子里生成这种 URL，LLM 100% 会幻觉**
+- ❌ 用 `cat > review/xxx.json` / `echo > ...` / Write 工具直接创建 review JSON — 用 `review_helper.py`
+- ❌ 修改 `wxmp-studio/app.py`、重启服务、cp 图到 static 目录
+- ❌ 用 `theme_source: "purple_html"` 或其他不存在的目录（合法值只有 `mdnice` 和 `jahseh`）
+- ❌ 文章末尾忘了"我是宇龙，一个用 AI 搞副业的打工人。"
+
+### ✅ 决策树
+
+```
+要把文章加进 review？
+│
+├─ 文章已经发布到公众号了？
+│   ├─ 是 → archives/published/ 里有这篇？
+│   │      ├─ 有 → 用 add-published（路径 A，下面）
+│   │      └─ 没有 → 先跑 archive_articles.py 拉一份，再 add-published
+│   └─ 没发布 → 走下面
+│
+└─ 没发布 → 文章写在 wxmp-studio/drafts/ 里了？
+    ├─ 是 → 草稿 content 里图片是 ![](filename) 本地文件名？
+    │      ├─ 是 → 用 add-draft（路径 B）
+    │      └─ 不是 → 把图片标记改成本地文件名（drafts/{id}/images/ 里的真实文件名），再 add-draft
+    └─ 不是 → 先在 drafts/ 里建草稿、把本地图放到 images/、写 ![](filename)，再走上面
+```
+
+### 路径 A：已发布文章 → `add-published`
+
+```bash
+HELPER=/root/.openclaw/workspace/projects/wxmp-studio/scripts/review_helper.py
+
+python3 $HELPER add-published \
+  --article-dir /root/.openclaw/skills/wxmp-article-pipeline/references/archives/published/2026-04-09-我给AI装上了外挂它能自 \
+  --title "我给AI装上了外挂 (已发布)"
+```
+
+**渲染来源**：直接用 `published.html`，里面的 mmbiz URL 是 wxdown 抓时的真实 URL。和你手机上看到的一模一样。
+
+### 路径 B：本地草稿 → `add-draft`
+
+**前提**：草稿 `meta.json` 的 `content` 字段里图片必须是 **本地文件名**（不是 URL，不是绝对路径）：
+
+```markdown
+正文段落...
+
+![](062555-ae86.jpeg)
+
+正文段落...
+```
+
+文件名要和 `meta.json["images"][n]["filename"]` 完全一致。`app.py` 会自动改写成 `/api/drafts/{id}/images/062555-ae86.jpeg/file`。
+
+```bash
+python3 $HELPER add-draft \
+  --draft-id 20260410-062506-c31247 \
+  --title "SBTI 人格测试" \
+  --theme 姹紫 \
+  --auto-insert-images        # 草稿没图片标记？让脚本按段落均匀插
+```
+
+`--auto-insert-images` 会**直接修改 `drafts/{id}/meta.json`**（持久化、幂等），把 `images/` 里所有未引用的图按段落均匀插入。alt 用 image 的 `note` 字段。
+
+### 主题预设（重要：永远从这里挑，不要发明新的）
+
+所有主题都在 `/root/.openclaw/workspace-restore/docs/wxmp-themes/mdnice/*.json`。常用：
+
+| theme 参数值 | 风格 | 适用场景 |
+|---|---|---|
+| `紫色渐变` | 渐变紫底色 + 彩色 hr + 卡片式 blockquote | **宇龙个人号默认** — 视觉冲击足、有辨识度 |
+| `姹紫` | 纯白底 + 紫色标题 + 边框 blockquote | mdnice 经典紫色，正式一点 |
+| `柠檬黄` | 黄绿色调 | 轻快、生活类内容 |
+| `橙心` | 橙色调 | 活泼、热情 |
+| `兰青` | 蓝青色 | 偏理性 / 技术 |
+| `极简黑` | 黑白极简 | 严肃、专业 |
+| `Pornhub黄` | 黄黑高对比 | 科技节奏感 / 段子 |
+| `WeFormat` | 中性 | 通用 |
+
+`--theme-source` 永远是 `mdnice`（默认值，不用写）。
+
+完整主题列表（权威源）：`curl -s http://127.0.0.1:8070/api/themes` 返回的 JSON 数组里 `name` 字段就是合法 `--theme` 参数值。
+
+🚫 **永远不要传不存在的主题名**（比如 `purple_html`、`紫色`、`hermes-purple`）。先调 `/api/themes` 确认存在再用，不要凭记忆或 ls 文件（文件枚举可能漏掉 json-only 主题）。
+
+#### 加新主题（需要时）
+
+如果用户说"我想要一个 XXX 风格的主题"：
+1. 在 `/root/.openclaw/workspace-restore/docs/wxmp-themes/mdnice/` 加一个 `{name}.json`，schema 参考 `紫色渐变.json`
+2. 不需要改任何代码或重启服务
+3. 立即可以用 `--theme {name}`
+
+### 列表 / 删除
+
+```bash
+python3 $HELPER list --confirmed-only
+python3 $HELPER remove --id <review_id>
+```
+
+### 个人签名规则（写文章时遵守）
+
+任何完整文章在写入 `drafts/{id}/meta.json` 的 `content` 字段时，**末尾必须加**：
+
+```
+---
+
+我是宇龙，一个用 AI 搞副业的打工人。
+```
+
+未发布的草稿、待 review 的文章都要带。如果发现没有，编辑 `meta.json` 补上再 `add-draft`。
+
+### 完整文档
+
+`/root/.openclaw/workspace/projects/wxmp-studio/REVIEW.md`
+
+### 触发场景
+
+用户说："加到 review" / "加到已渲染草稿" / "做对比预览" / "在 wxmp 预览这篇文章"
+
+→ 立即按上面决策树走 A 或 B。**永远不要绕过 review_helper.py，永远不要手写 mmbiz URL**。

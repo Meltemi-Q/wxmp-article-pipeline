@@ -174,7 +174,16 @@ def main():
     parser.add_argument("--force", action="store_true", help="强制覆盖已存档的文章")
     parser.add_argument("--dry-run", action="store_true", help="只显示要拉哪些，不实际下载")
     parser.add_argument("--latest", action="store_true", help="只拉最新一篇文章（发布后立即触发）")
+    parser.add_argument("--json", action="store_true", help="stdout 输出结构化 JSON（供 freeze-latest 等上层 CLI 消费）, 人类日志改走 stderr")
     args = parser.parse_args()
+
+    # When --json, redirect all human-readable prints to stderr so stdout stays clean
+    import sys as _sys
+    _print_fn = print
+    if args.json:
+        def print(*a, **kw):  # noqa: A001
+            kw.setdefault("file", _sys.stderr)
+            _print_fn(*a, **kw)
 
     ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -197,6 +206,8 @@ def main():
 
     if not articles:
         print("没有文章需要存档")
+        if args.json:
+            _print_fn(json.dumps({"ok": False, "articles": [], "reason": "no articles returned from wxdown"}, ensure_ascii=False))
         return
 
     print("\n📥 开始存档...")
@@ -232,6 +243,29 @@ def main():
     done = len(archived) if not args.dry_run else 0
     todo = len([a for a in articles if not is_archived(a)]) if not args.dry_run else 0
     print(f"\n✅ 完成。共存档 {done} 篇，跳过 {skipped} 篇（dry-run 显示 {todo} 篇待存）")
+
+    if args.json:
+        # Emit structured result to real stdout
+        result_articles = []
+        for a in articles:
+            folder = archive_foldername(a)
+            folder_path = ARCHIVE_DIR / folder
+            if a in archived:
+                status = "archived"
+            elif is_archived(a):
+                status = "skipped"  # already existed
+            else:
+                status = "failed"
+            result_articles.append({
+                "folder": folder,
+                "path": str(folder_path),
+                "title": a.get("title", ""),
+                "date": a.get("date", ""),
+                "url": a.get("url", ""),
+                "status": status,
+            })
+        payload = {"ok": True, "articles": result_articles}
+        _print_fn(json.dumps(payload, ensure_ascii=False))
 
 
 if __name__ == "__main__":
