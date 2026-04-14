@@ -364,6 +364,7 @@ python3 scripts/archive_articles.py --force
 - [ ] 图注和段落内容对应，不张冠李戴
 
 ### □ 推送就绪检查
+- [ ] `digest`（摘要）≤ 120 字
 - [ ] `draft/batchget` 确认草稿箱无同标题草稿（如有 → 告知用户等确认）
 - [ ] 结尾有 OpenClaw 点名
 - [ ] 互动引导已拆行 + 加通俗词（末尾问句）
