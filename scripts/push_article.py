@@ -648,6 +648,12 @@ def render_markdown_to_purple_html(
             i += 1
             continue
 
+        # 独立一行的大块 HTML（如居中链接等），不做段落包装
+        if stripped.startswith('<') and re.search(r'</[a-z]+>$', stripped):
+            html_parts.append(stripped)
+            i += 1
+            continue
+
         # 普通段落
         html_parts.append(
             f'<p style="margin: 15px 0; text-align: justify;">{inline_format(stripped)}</p>'
