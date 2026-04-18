@@ -193,6 +193,10 @@ python3 scripts/archive_articles.py --force
 2. 对应文章哪个段落
 3. 图注应该怎么写
 
+**图注禁止出现文件名**：写图注时要像跟朋友描述这张图在展示什么，禁止出现 `img_xx.jpg` 这类文件名。
+
+**图片排除规则**：用户说哪张不用才排除，不要自己推断。遇到无关内容（如截图里有完全不相关的小贴士），在图注里说明，让用户决定。
+
 ### 3.2 上传接口区分
 
 | 用途 | 接口 | 返回 | 作用 |
@@ -299,7 +303,17 @@ python3 scripts/archive_articles.py --force
 </p>
 ```
 
-### 3.8 列表
+### 3.8 独立链接（居中+颜色）
+
+当文章中有独立一行显示的链接时（如旧版回顾、新网站上线），用居中+颜色格式：
+
+```html
+<center><a href="https://example.com" style="color:#7c3aed">旧版网站回顾 →</a></center>
+```
+
+push_article.py 渲染器会把以 `<` 开头且以 `</x>` 结尾的行当作原始 HTML 处理，不会包进 `<p style="text-align: justify">`，居中不会失效。
+
+### 3.9 列表
 
 ```html
 <ul style="margin: 15px 0; padding-left: 25px;">
@@ -307,7 +321,7 @@ python3 scripts/archive_articles.py --force
 </ul>
 ```
 
-### 3.9 结尾（不加手写签名）
+### 3.10 结尾（不加手写签名）
 
 公众号已有固定底部模板（关注引导、往期推荐），正文末尾**不加手写签名**。
 
@@ -316,7 +330,7 @@ python3 scripts/archive_articles.py --force
 
 > 来源：2026-03-20 Yulong 审稿确认，手写签名显得套路化和重复
 
-### 3.10 负面评价软化
+### 3.12 负面评价软化
 
 | 原稿写法 | 发布时处理 |
 |---------|----------|
@@ -324,7 +338,7 @@ python3 scripts/archive_articles.py --force
 | "推脱，不肯动" | "需要再催一句" |
 | 提及具体政治性描述 | 删掉，只保留行为描述 |
 
-### 3.11 mp-style-type 标记
+### 3.13 mp-style-type 标记
 
 文章末尾加上（微信编辑器识别用）：
 
@@ -362,9 +376,12 @@ python3 scripts/archive_articles.py --force
 - [ ] 主观评论/金句已抽出为 Blockquote
 - [ ] 每张图有图注（不是文件名，不是"图片描述"）
 - [ ] 图注和段落内容对应，不张冠李戴
+- [ ] 图注里没有出现 `img_xx.jpg` 这样的文件名
 
 ### □ 推送就绪检查
+- [ ] `digest`（摘要）单独发给用户，不写在文章正文里
 - [ ] `digest`（摘要）≤ 120 字
+- [ ] 独立一行的链接已用居中+颜色格式（`<center><a href="..." style="color:#7c3aed">文字 →</a></center>`）
 - [ ] `draft/batchget` 确认草稿箱无同标题草稿（如有 → 告知用户等确认）
 - [ ] 结尾有 OpenClaw 点名
 - [ ] 互动引导已拆行 + 加通俗词（末尾问句）
@@ -419,6 +436,9 @@ response = requests.post(
 | 编造 Skill 名 | 文章里写了不存在的 Skill | 只写实际存在的 Skill，没有的不准编 |
 | 改了内容不推送 | 本地改了但没推 | 直接推，让用户看草稿箱效果再反馈 |
 | 正文残留杂字（如"小红书"） | 渲染后HTML里多了乱文字 | 推送前 grep HTML 查残留文字，手动删掉 |
+| 图注出现 img_xx 文件名 | 图注里出现了图片文件名 | 写图注时要像跟朋友描述图里有什么，禁止出现 img_xx.jpg |
+| 链接没有居中+颜色 | 独立一行链接文字没有居中上色 | 用 `<center><a href="..." style="color:#7c3aed">文字 →</a></center>`，push_article.py 会做 raw HTML 处理不包 `<p>` |
+| 副标题写在文章正文里 | digest 混在文章内容里 | digest 单独发给用户，不写进文章正文 |
 
 ---
 
