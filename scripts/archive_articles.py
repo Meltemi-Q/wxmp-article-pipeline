@@ -210,7 +210,7 @@ def main():
     if not articles:
         print("没有文章需要存档")
         if args.json:
-            print(json.dumps({"ok": False, "articles": [], "reason": "no articles returned from wxdown"}, ensure_ascii=False))
+            _sys.stdout.write(json.dumps({"ok": False, "articles": [], "reason": "no articles returned from wxdown"}, ensure_ascii=False) + "\n")
         return
 
     print("\n📥 开始存档...")
@@ -268,7 +268,7 @@ def main():
                 "status": status,
             })
         payload = {"ok": True, "articles": result_articles}
-        print(json.dumps(payload, ensure_ascii=False))
+        _sys.stdout.write(json.dumps(payload, ensure_ascii=False) + "\n")
 
 
 if __name__ == "__main__":
