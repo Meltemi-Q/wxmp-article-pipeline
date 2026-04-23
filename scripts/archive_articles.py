@@ -179,11 +179,13 @@ def main():
 
     # When --json, redirect all human-readable prints to stderr so stdout stays clean
     import sys as _sys
-    _print_fn = print
-    if args.json:
-        def print(*a, **kw):  # noqa: A001
+    _json_mode = args.json
+    _log_fn = print  # always the builtin
+
+    def print(*a, **kw):  # noqa: A001
+        if _json_mode:
             kw.setdefault("file", _sys.stderr)
-            _print_fn(*a, **kw)
+        _log_fn(*a, **kw)
 
     ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -207,7 +209,7 @@ def main():
     if not articles:
         print("没有文章需要存档")
         if args.json:
-            _print_fn(json.dumps({"ok": False, "articles": [], "reason": "no articles returned from wxdown"}, ensure_ascii=False))
+            print(json.dumps({"ok": False, "articles": [], "reason": "no articles returned from wxdown"}, ensure_ascii=False))
         return
 
     print("\n📥 开始存档...")
@@ -265,7 +267,7 @@ def main():
                 "status": status,
             })
         payload = {"ok": True, "articles": result_articles}
-        _print_fn(json.dumps(payload, ensure_ascii=False))
+        print(json.dumps(payload, ensure_ascii=False))
 
 
 if __name__ == "__main__":
