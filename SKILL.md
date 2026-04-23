@@ -527,6 +527,40 @@ python3 scripts/diff_articles.py "2026-04-09-完整文件夹名"  # 精确匹配
 
 用于：检查发布后实际改了什么，评估改稿效果。
 
+### 对比用存档（每次推草稿自动留存）
+
+**目的**：保留推草稿那一刻的原文，用于和发布后版本做格式干净的内容对比。
+
+**路径**：`archives/last-push/`
+
+| 文件 | 触发时机 | 用来做什么 |
+|------|---------|-----------|
+| `original.md` | push_article.py 推草稿成功后自动复制 | 对比内容改动（格式一致，无渲染干扰） |
+| `pre-publish.html` | push_article.py 推草稿成功后自动复制 | 对比你发布前在草稿箱改了什么 |
+| `published.html` | 发布后 freeze-latest 拉取 | 对比最终发布版和推草稿时的差异 |
+
+**自动存档逻辑**（在 `push_article.py` 里实现）：
+```python
+import shutil, os
+last_push = "/root/.openclaw/skills/wxmp-article-pipeline/archives/last-push"
+os.makedirs(last_push, exist_ok=True)
+shutil.copy(markdown_file, f"{last_push}/original.md")
+shutil.copy(rendered_html, f"{last_push}/pre-publish.html")
+```
+
+**对比命令**：
+```bash
+# 内容 diff（原稿 vs 发布版）
+diff archives/last-push/original.md archives/last-push/published.md
+
+# 渲染 diff（推草稿版 vs 发布版，看发布前改了什么）
+diff archives/last-push/pre-publish.html archives/last-push/published.html
+```
+
+**注意**：
+- `archives/last-push/` 只保留最新一次推送的内容，每次推草稿自动覆盖
+- 发布后记得跑 `freeze-latest` 把 `published.html` 补上，否则三个文件缺一个
+
 ---
 
 ## 已渲染草稿 review tab — 数据操作（不是改项目）

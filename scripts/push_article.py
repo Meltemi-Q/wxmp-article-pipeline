@@ -24,6 +24,7 @@
 
 注意: 密钥从 /root/.openclaw/secrets/wxmp-yulong.env 读取，不要在命令行传密钥。
 """
+import shutil
 import argparse
 import json
 import mimetypes
@@ -716,6 +717,26 @@ def make_video_block(media_id: str) -> str:
     )
 
 
+def verify_article_str(text: str) -> int:
+    """文章自检：PART字样、图片alt等，返回0表示通过"""
+    errors = []
+    # PART 字样检查
+    for i, line in enumerate(text.splitlines(), 1):
+        import re
+        if re.search(r'\bPART\b', line, re.IGNORECASE):
+            errors.append(f"  行 {i}: {line.strip()[:60]}")
+    if errors:
+        print(f"❌ 发现 PART 字样:\n" + "\n".join(errors))
+        return 1
+    # 图片alt检查（不能是空）
+    images = re.findall(r'!\[([^\]]*)\]\(([^)]+)\)', text)
+    print(f"📷 Markdown 图片引用: {len(images)} 张")
+    for alt, path in images:
+        if not alt.strip():
+            print(f"⚠️  {path} 的 alt 为空")
+    return 0
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="微信公众号文章一键推送",
@@ -751,6 +772,12 @@ def main() -> None:
 
     print(f"📄 读取 Markdown: {md_path}")
     markdown_text = md_path.read_text(encoding="utf-8")
+
+    # 文章自检（图片顺序 + PART 字样）
+    print(f"\n🔍 文章自检...")
+    verify_rc = verify_article_str(markdown_text)
+    if verify_rc != 0:
+        print(f"⚠️  自检发现问题（人工核对后确认可继续请忽略）")
 
     # 获取凭据
     if not args.dry_run:
@@ -872,6 +899,13 @@ def main() -> None:
         print(f"  ⚠️  验证警告: {article['error']}")
     else:
         print(f"  ✅ 草稿验证通过: title='{article.get('title')}', content_length={len(article.get('content', ''))}")
+
+    # 留存对比用存档（覆盖上次推送的内容）
+    last_push_dir = Path(__file__).parent.parent / "archives" / "last-push"
+    last_push_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(md_path, last_push_dir / "original.md")
+    (last_push_dir / "pre-publish.html").write_text(html, encoding="utf-8")
+    print(f"  ✅ 对比存档已留存: {last_push_dir}/original.md + pre-publish.html")
 
     # 输出报告
     report = {
