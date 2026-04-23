@@ -130,10 +130,10 @@ def save_article(article: dict, html: str, md: str, force: bool = False) -> bool
     return True
 
 
-def update_hist_index(articles: list[dict]):
+def update_hist_index(articles: list[dict], print_fn=print):
     """更新 HISTORICAL-ARTICLES.md 的已发布文章表格"""
     if not HIST_INDEX.exists():
-        print("  ⚠️ HISTORICAL-ARTICLES.md 不存在，跳过索引更新")
+        print_fn("  ⚠️ HISTORICAL-ARTICLES.md 不存在，跳过索引更新")
         return
 
     content = HIST_INDEX.read_text()
@@ -151,7 +151,7 @@ def update_hist_index(articles: list[dict]):
         new_lines.append(f"| {date} | {title} | {folder}/ | {url} | {abstract} |")
 
     if not new_lines:
-        print("  ✓ HISTORICAL-ARTICLES.md 已是最新的")
+        print_fn("  ✓ HISTORICAL-ARTICLES.md 已是最新的")
         return
 
     last_sep = content.rfind("|------|")
@@ -161,11 +161,11 @@ def update_hist_index(articles: list[dict]):
             insert_pos = end + 1
             new_content = content[:insert_pos] + "\n".join(new_lines) + "\n" + content[insert_pos:]
             HIST_INDEX.write_text(new_content)
-            print(f"  ✓ HISTORICAL-ARTICLES.md 新增 {len(new_lines)} 条记录")
+            print_fn(f"  ✓ HISTORICAL-ARTICLES.md 新增 {len(new_lines)} 条记录")
             return
 
     HIST_INDEX.write_text(content + "\n" + "\n".join(new_lines) + "\n")
-    print(f"  ✓ HISTORICAL-ARTICLES.md 追加 {len(new_lines)} 条记录")
+    print_fn(f"  ✓ HISTORICAL-ARTICLES.md 追加 {len(new_lines)} 条记录")
 
 
 def main():
@@ -241,7 +241,7 @@ def main():
 
     if archived:
         print("\n📝 更新索引...")
-        update_hist_index(archived)
+        update_hist_index(archived, print)
 
     done = len(archived) if not args.dry_run else 0
     todo = len([a for a in articles if not is_archived(a)]) if not args.dry_run else 0
