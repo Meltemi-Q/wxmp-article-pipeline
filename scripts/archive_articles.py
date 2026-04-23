@@ -180,7 +180,8 @@ def main():
     # When --json, redirect all human-readable prints to stderr so stdout stays clean
     import sys as _sys
     _json_mode = args.json
-    _log_fn = print  # always the builtin
+    import builtins as _builtins
+    _log_fn = _builtins.print
 
     def print(*a, **kw):  # noqa: A001
         if _json_mode:
