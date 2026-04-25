@@ -292,6 +292,33 @@ python3 scripts/archive_articles.py --force
 2. 对应文章哪个段落
 3. 图注应该怎么写
 
+#### 强制工具：image-recognize（Gemini 3 Flash）
+
+写文前**第一步**就跑批量识别，不要边写边猜：
+
+```bash
+node /root/.openclaw/skills/image-recognize/scripts/recognize_images_with_gemini.mjs <图片目录或文件>
+```
+
+会落盘三种结果（每张图一份）：
+- `<name>.gemini.ocr.txt` — 纯文字 OCR
+- `<name>.recognize.md` — 文字 + 图片说明 + 关键信息（人话总结）
+- `<name>.recognize.json` — 结构化数据
+
+把每张图的 `.recognize.md` 内联到工作上下文后再开始写正文，按"图说什么 → 段落讲什么"匹配。
+
+**为什么用 Gemini 而不是其他模型？**（实测 2026-04-25，三家盲测）
+
+| 维度 | Gemini 3 Flash | MiniMax | Claude Sonnet 4.6 |
+|---|---|---|---|
+| OCR 准确度 | ✅ | ✅ | ✅ |
+| 字段-内容对应（防张冠李戴） | ✅ | 偶尔模糊 | ✅✅ 最强 |
+| 单图速度 | ~10s | ~20s | ~6s |
+| 现成批量脚本 + 三种落盘 | ✅ | ❌ | ❌ |
+| 综合 | **默认主力** | 备选 | 高难度兜底 |
+
+公众号配图场景默认 Gemini，足够用。如果某张图三家结果对不上、疑似关键事实有歧义（产品名/版本号/数字），再用 Claude Sonnet 4.6 走 ccvps 二次校验（参考 claude-api-proxy skill）。
+
 **图注禁止出现文件名**：写图注时要像跟朋友描述这张图在展示什么，禁止出现 `img_xx.jpg` 这类文件名。
 
 **图片排除规则**：用户说哪张不用才排除，不要自己推断。遇到无关内容（如截图里有完全不相关的小贴士），在图注里说明，让用户决定。

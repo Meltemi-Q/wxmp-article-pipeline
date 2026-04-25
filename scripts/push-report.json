@@ -1,21 +1,168 @@
 {
-  "title": "我用 AI 把小红书扒了个精光，顺手摸到了流量女王的公式",
-  "author": "宇龙",
-  "markdown_file": "/root/.openclaw/workspace/projects/wxmp-studio/drafts/20260408-xhs-traffic/content.md",
-  "cover_image": "/root/.openclaw/workspace/projects/wxmp-studio/drafts/20260408-xhs-traffic/qrcode.jpg",
-  "cover_media_id": "phWtpBB1QkuF4OF3VoXwz_oU53BbICs6z0q_6zxolioYwqxlrGubE__McGhEArYr",
-  "draft_media_id": "phWtpBB1QkuF4OF3VoXwz6lnI-Kd4G_i-K8HMTUZreN-DZUB9KxGo1o3mW_dIUkC",
-  "image_count": 1,
-  "content_length": 8826,
-  "mmbiz_image_count": 1,
-  "verified_title": "æç¨ AI æå°çº¢ä¹¦æäºä¸ªç²¾åï¼é¡ºææ¸å°äºæµéå¥³ççå¬å¼",
-  "verified_content_length": 11508,
+  "title": "Claude出了个新工具，我拿它重做了个人网站——效果贼惊艳！",
+  "author": "屿龙",
+  "markdown_file": "/root/wxmp-studio/drafts/claude-design-2026-04-18/article.md",
+  "cover_image": "/root/.openclaw/workspace/projects/wxmp-studio/drafts/20260418-145030/images/img_19.jpg",
+  "cover_media_id": "phWtpBB1QkuF4OF3VoXwz8qBA8-9jnsmoSrqEYZS4_sT1fZUvK8Ym9eGcymL8jvj",
+  "draft_media_id": "phWtpBB1QkuF4OF3VoXwz17MfTN5o380zGQNDBCWy60dUnUgKXbKWcD7h2Ic6ccV",
+  "image_count": 22,
+  "content_length": 18478,
+  "mmbiz_image_count": 22,
+  "verified_title": "Claudeåºäºä¸ªæ°å·¥å·ï¼ææ¿å®éåäºä¸ªäººç½ç«ââææè´¼æè³ï¼",
+  "verified_content_length": 21387,
   "uploads": [
     {
-      "path": "/root/.openclaw/workspace/projects/wxmp-studio/drafts/20260408-xhs-traffic/qrcode.jpg",
-      "basename": "qrcode.jpg",
-      "url": "http://mmbiz.qpic.cn/sz_mmbiz_jpg/zejTquZtCCqtMLGTw6x7pBCJFbP9lrfDYqY2picLWsmW1cHnfMSOQv6ibMjatMRIvKiakmG1bvVWMlHtBMFiapIooSOaSf0KadrZpCykLFxcuuI/0?wx_fmt=jpeg",
-      "alt": "qrcode",
+      "path": "/root/.openclaw/workspace/projects/wxmp-studio/drafts/20260418-145030/images/img_1.jpg",
+      "basename": "img_1.jpg",
+      "url": "http://mmbiz.qpic.cn/sz_mmbiz_png/zejTquZtCCrMSUxQgMchRkOjia70OpWgSQkYrUcSNYLqlR59jfRp3EjfIxbjWacBBBj63K9Qmtw9Sicvt0F8xL3CQg0icJd9UTUrQmhve61wx0/0?from=appmsg",
+      "alt": "img_1",
+      "caption": ""
+    },
+    {
+      "path": "/root/.openclaw/workspace/projects/wxmp-studio/drafts/20260418-145030/images/img_3.jpg",
+      "basename": "img_3.jpg",
+      "url": "http://mmbiz.qpic.cn/sz_mmbiz_png/zejTquZtCCr0j04UXlibibh5v9jfbq65M5uj6ic0QqvJZ8uic0gGYRRjXz5s3yLfMQxPwPl1gPz9FPUuAjUkib5W1E9ClcJy42Rbqtyv7mMao4xI/0?from=appmsg",
+      "alt": "img_3",
+      "caption": ""
+    },
+    {
+      "path": "/root/.openclaw/workspace/projects/wxmp-studio/drafts/20260418-145030/images/img_2.jpg",
+      "basename": "img_2.jpg",
+      "url": "http://mmbiz.qpic.cn/mmbiz_png/zejTquZtCCrMzRibMvNDxSuD78mCXeXkNlwwJou7EQ7wibtGpGvbicDCiaA67gRicsnPiavjebbLYosjTW92bYqoVBHHqKkNbib1Iw0fM3K10A4sRQ/0?from=appmsg",
+      "alt": "img_2",
+      "caption": ""
+    },
+    {
+      "path": "/root/.openclaw/workspace/projects/wxmp-studio/drafts/20260418-145030/images/img_4.jpg",
+      "basename": "img_4.jpg",
+      "url": "http://mmbiz.qpic.cn/sz_mmbiz_png/zejTquZtCCpAsaUMMxeC23TfoskKaeUqt7Hej3nbsTIPXU6DyrLNdbFvNwibgHaoUPZia5cAfic4oS4D6CuWLFDNeTEjX5CiaZicKvESib8wReHtI/0?from=appmsg",
+      "alt": "img_4",
+      "caption": ""
+    },
+    {
+      "path": "/root/.openclaw/workspace/projects/wxmp-studio/drafts/20260418-145030/images/img_22.jpg",
+      "basename": "img_22.jpg",
+      "url": "http://mmbiz.qpic.cn/sz_mmbiz_png/zejTquZtCCq6ssfX8uQ89cUAibsmCjdSbyHs8Sx7ZLBJW8cgyzyHfOTptQXC3lZibaA28JxKp3xWdZ5dl5jNBHbsqvr3XEJNbdTaNOicCMuCpw/0?from=appmsg",
+      "alt": "img_22",
+      "caption": ""
+    },
+    {
+      "path": "/root/.openclaw/workspace/projects/wxmp-studio/drafts/20260418-145030/images/img_24.jpg",
+      "basename": "img_24.jpg",
+      "url": "http://mmbiz.qpic.cn/mmbiz_png/zejTquZtCCrtxVgnlWdu68xVeDeZayLdxZAsjIDibQouLT74U7epYc8GY5c1L5iaNRpVias3biabMa5Wib4tiaOaC0fp5lz7zXK2IWxuv03GZXpd4/0?from=appmsg",
+      "alt": "img_24",
+      "caption": ""
+    },
+    {
+      "path": "/root/.openclaw/workspace/projects/wxmp-studio/drafts/20260418-145030/images/img_5.jpg",
+      "basename": "img_5.jpg",
+      "url": "http://mmbiz.qpic.cn/sz_mmbiz_png/zejTquZtCCqgJ7fvjx5Gr7y1D5QpZ5JPVqoozLf06c7sVRkXYvPGMGiclvGANzz6uHjmWkicFZqhgDf4EQP9m8I4s5NzCFAuzYukuJHxT0ero/0?from=appmsg",
+      "alt": "img_5",
+      "caption": ""
+    },
+    {
+      "path": "/root/.openclaw/workspace/projects/wxmp-studio/drafts/20260418-145030/images/img_7.jpg",
+      "basename": "img_7.jpg",
+      "url": "http://mmbiz.qpic.cn/sz_mmbiz_png/zejTquZtCCrI1NvS92kB4b8pLrvdZWda1pic1VnTmHIjvcPsuyIkPue1wP9lft7Rfic42YIV7RUeKBWSBTD1r8ic4daZtSwLJ86OTCib6vnAvpI/0?from=appmsg",
+      "alt": "img_7",
+      "caption": ""
+    },
+    {
+      "path": "/root/.openclaw/workspace/projects/wxmp-studio/drafts/20260418-145030/images/img_8.jpg",
+      "basename": "img_8.jpg",
+      "url": "http://mmbiz.qpic.cn/sz_mmbiz_png/zejTquZtCCq0UphyrDtO9aNUa89OkAOMzu3GshcFs0A4I1ZAsRhm7FFgwU2ibaDXWxBPxI60px9yeIc8p8sPSAndk1ky5K42HCKvKLicOa7pA/0?from=appmsg",
+      "alt": "img_8",
+      "caption": ""
+    },
+    {
+      "path": "/root/.openclaw/workspace/projects/wxmp-studio/drafts/20260418-145030/images/img_12.jpg",
+      "basename": "img_12.jpg",
+      "url": "http://mmbiz.qpic.cn/sz_mmbiz_png/zejTquZtCCqTFYkzDGvDbHPue6dLCEagcwjFlcEmibiaFkO09lgJAp8lvcicG2xtDm0E5EKeYz5NKSKey4jdEYwaPA5EsicGYSlqDebNposvcqg/0?from=appmsg",
+      "alt": "img_12",
+      "caption": ""
+    },
+    {
+      "path": "/root/.openclaw/workspace/projects/wxmp-studio/drafts/20260418-145030/images/img_13.jpg",
+      "basename": "img_13.jpg",
+      "url": "http://mmbiz.qpic.cn/mmbiz_png/zejTquZtCCr2hWoOsgzZftjHI0VA9ByiccicSCNL6YWB4XUUnIBXCBb1dAmDtbkfNhkXcPOzib5aBCB8OtFPlC7upt8enpnSgCgUjLB0Zm1AcY/0?from=appmsg",
+      "alt": "img_13",
+      "caption": ""
+    },
+    {
+      "path": "/root/.openclaw/workspace/projects/wxmp-studio/drafts/20260418-145030/images/img_9.jpg",
+      "basename": "img_9.jpg",
+      "url": "http://mmbiz.qpic.cn/mmbiz_png/zejTquZtCCr9DsckmpsXvFZF9ngEcve6N3ORaCJPeBuKfQZBSs66c9hOFbofywpzu2o5Sg4lYc2m3ejicfOmEIDUFDjpnIR8ZJjTGo0LiaR1I/0?from=appmsg",
+      "alt": "img_9",
+      "caption": ""
+    },
+    {
+      "path": "/root/.openclaw/workspace/projects/wxmp-studio/drafts/20260418-145030/images/img_10.jpg",
+      "basename": "img_10.jpg",
+      "url": "http://mmbiz.qpic.cn/mmbiz_png/zejTquZtCCrTCcEgYs7A8nntu18Tsr9KjU21ZxmOI13X3z7XBPlB5HXKC7TXlLrQRjvKKa3zNwf6wfYFTqoyIjM6uAFUblcIoFh0sIZwPoA/0?from=appmsg",
+      "alt": "img_10",
+      "caption": ""
+    },
+    {
+      "path": "/root/.openclaw/workspace/projects/wxmp-studio/drafts/20260418-145030/images/img_11.jpg",
+      "basename": "img_11.jpg",
+      "url": "http://mmbiz.qpic.cn/mmbiz_png/zejTquZtCCo3dgk1F3B14jLvjBn59AibQZEnmR5ByjVwZ18riaMDB9m3WDA2KLEGyDey0HOuAzvAUkVsANwvCApQ4ZP9Bu14hOk47Zv2aGgLc/0?from=appmsg",
+      "alt": "img_11",
+      "caption": ""
+    },
+    {
+      "path": "/root/.openclaw/workspace/projects/wxmp-studio/drafts/20260418-145030/images/img_23.jpg",
+      "basename": "img_23.jpg",
+      "url": "http://mmbiz.qpic.cn/sz_mmbiz_png/zejTquZtCCrj6GsCkgnFODicIHZbicgPVnqicY2Mp3x0aRmCyX4ph10UAhdsicMmy9qwrJvTxlT3syWGV2wVoTXO7YdaswnEpUvpHpwIwgMZ93A/0?from=appmsg",
+      "alt": "img_23",
+      "caption": ""
+    },
+    {
+      "path": "/root/.openclaw/workspace/projects/wxmp-studio/drafts/20260418-145030/images/img_15.jpg",
+      "basename": "img_15.jpg",
+      "url": "http://mmbiz.qpic.cn/sz_mmbiz_png/zejTquZtCCrCvEiavIWFqFMwwGKNMXN1OJPzKbp6VepAAPMhZPGGBBLTgcP6GtWicadAgxaKByYvwSKV0gRoViaIwVHO5mco0icnukckaARNZl0/0?from=appmsg",
+      "alt": "img_15",
+      "caption": ""
+    },
+    {
+      "path": "/root/.openclaw/workspace/projects/wxmp-studio/drafts/20260418-145030/images/img_16.jpg",
+      "basename": "img_16.jpg",
+      "url": "http://mmbiz.qpic.cn/sz_mmbiz_png/zejTquZtCCp2pYiaAFjt5tD8k1wWeGq3haUtfe6h5gfebMnZZ6wPp7XHFZCcs1a2icRPCPgrbD6NX44v5h9pPGVFEo7LRKo3LqsaPAsnTWbHs/0?from=appmsg",
+      "alt": "img_16",
+      "caption": ""
+    },
+    {
+      "path": "/root/.openclaw/workspace/projects/wxmp-studio/drafts/20260418-145030/images/img_17.jpg",
+      "basename": "img_17.jpg",
+      "url": "http://mmbiz.qpic.cn/mmbiz_png/zejTquZtCCpkuRXyVkibebQ8ICPwIfrjOcRY0ZfvWN4Ncg0QaNRBot7bNcWufhnbuVPQZ3vzz5L1AD5XeNseM2pUgjIQ0icT41hk9EOorDxiaU/0?from=appmsg",
+      "alt": "img_17",
+      "caption": ""
+    },
+    {
+      "path": "/root/.openclaw/workspace/projects/wxmp-studio/drafts/20260418-145030/images/img_18.jpg",
+      "basename": "img_18.jpg",
+      "url": "http://mmbiz.qpic.cn/sz_mmbiz_png/zejTquZtCCpau4oLJfxibBqQGJjKKUZncYYOGzFsXvEPp1FGPtwrl6yhfZbMj2k2AcXWoL0tFY339D9Bic3LY3jyUNfLymeeelB07qsveLkL4/0?from=appmsg",
+      "alt": "img_18",
+      "caption": ""
+    },
+    {
+      "path": "/root/.openclaw/workspace/projects/wxmp-studio/drafts/20260418-145030/images/img_19.jpg",
+      "basename": "img_19.jpg",
+      "url": "http://mmbiz.qpic.cn/mmbiz_png/zejTquZtCCrGibQe3o03dTLzEh0A8gH2CknbBOEPvdiaryjkMbtOzrlnOpfVlGozqfjDDibVqVbtZbI8syCEe95KENVrobRbxg9pbpgVYvtuicU/0?wx_fmt=png",
+      "alt": "img_19",
+      "caption": ""
+    },
+    {
+      "path": "/root/.openclaw/workspace/projects/wxmp-studio/drafts/20260418-145030/images/img_20.jpg",
+      "basename": "img_20.jpg",
+      "url": "http://mmbiz.qpic.cn/sz_mmbiz_jpg/zejTquZtCCq7FQviaLjMpfsY9P5PLpWRhv83ApQlEv190WkxIibgpv2hFslXs1DNXOOWk4DsiboWJBZMg0SWTpYjWXicDZciaqdPqm3THI2q6ZK4/0?from=appmsg",
+      "alt": "img_20",
+      "caption": ""
+    },
+    {
+      "path": "/root/.openclaw/workspace/projects/wxmp-studio/drafts/20260418-145030/images/img_21.jpg",
+      "basename": "img_21.jpg",
+      "url": "http://mmbiz.qpic.cn/sz_mmbiz_jpg/zejTquZtCCps3RTTCAO86vCubJIdMibZfG70Yq6v3IdibQM4bY7DaBaF8azhbRa3mmIx9JWn8aspgQK6g0YANVuZeOc3jxJ2icTaribpkgocyXM/0?from=appmsg",
+      "alt": "img_21",
       "caption": ""
     }
   ]
