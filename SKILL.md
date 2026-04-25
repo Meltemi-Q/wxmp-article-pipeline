@@ -121,7 +121,7 @@ Yulong 给的素材里，**语音转写、口语句、自己写的草稿原文**
 
 ---
 
-## 零、先判断类型
+## 类型判断（先决定 news 还是 newspic）
 
 | 类型 | 场景 | API | 排版 |
 |------|------|-----|------|
@@ -136,7 +136,7 @@ Yulong 给的素材里，**语音转写、口语句、自己写的草稿原文**
 
 ---
 
-## 一、流程总览
+## 流程总览
 
 ### 文章流程（news）
 ```
@@ -172,7 +172,7 @@ Step 5：上传图片到微信
   ↓
 Step 6：渲染紫色主题 HTML（含 PART 标题、blockquote 金句、图注）
   ↓
-Step 7：逐项 QC 清单（见"§5 推送前 QC 清单"，全部 □ 通过再推）
+Step 7：逐项 QC 清单（见"推送前 QC 清单"章节，全部 □ 通过再推）
   ↓
 Step 8：去重检查（batchget 草稿箱，确认同标题不存在）
   ↓
@@ -188,35 +188,72 @@ Step 12：更新 REVISION-TRACKING.md（记录推送记录）
 ```
 
 ### 贴图流程（newspic）
+
+> ⚠️ **6 篇里有 4 篇是贴图**，比例 67%。这是**主流路径**，不是边角料。
+
 ```
 输入（短文本 + 1~N 张图片）
   ↓
-Step 1：上传图片到微信素材库（add_material）
+Step 1：判断要不要 hashtag
+  │  ★ 引流话题贴 → 末尾加 #Hermes #AI #具体话题（参考 4/15 抖音视频帖）
+  │  ★ 纯感想/产品发布 → 不加（参考 4/24 DeepSeekV4、4/16 Opus 4.7）
   ↓
-Step 2：组装 newspic payload
+Step 2：写正文
+  │  → 1-3 行场景钩子（"今天刷到X"、"DeepSeek大家都期待了好久了"）
+  │  → 几句关键说明（用了什么、效果如何）
+  │  → 一句感受 / 反问（"真方便啊～"）
+  │  → 互动结尾可选：「评论区聊聊，你最想让 AI 学什么技能？」
   ↓
-Step 3：推送草稿箱
+Step 3：上传图片到微信素材库（add_material）
+  ↓
+Step 4：组装 newspic payload（纯文本 content + image_info 数组）
+  ↓
+Step 5：推送草稿箱
   ↓
 输出：草稿 media_id
 ```
 
+#### 贴图写作要点（基于 6 篇真实贴图提炼）
+
+| 要点 | 怎么做 | 反例 |
+|---|---|---|
+| 标题 | ≤ 20 中文字 + 反差/惊喜 | "DeepSeekV4出了！我接进Hermes生成了视频" ✅ |
+| 开头 | 1-3 行画面钩子 | "DeepSeek大家都期待了好久了" ✅ |
+| 长度 | 150-400 字 | 03 那篇 150 字也可以发，不强求长 |
+| 签名 | **禁止加**"我是宇龙..." | newspic 不需要 |
+| AI 助手 | 直接叫 Hermes / 爱马仕 | 别叫 OpenClaw |
+| 紫色主题 | **不渲染** | newspic 是纯文本，加 inline style 会被 API 拒 |
+| hashtag | 引流话题贴可加 | `#Hermes #AI #进化 #skill #宇龙`（参考 4/15 抖音视频帖） |
+
+#### 何时加 hashtag（4/15 那篇是新模式）
+
+加：
+- 想引流到具体话题（#抖音、#skill、#Hermes）
+- 内容是"我学会了某个新技能"类
+- 想被关注同主题的人发现
+
+不加：
+- 模型/产品发布快讯（DeepSeekV4、Opus 4.7）
+- 个人感想/吐槽
+- 太正式的内容
+
 ---
 
-## 二、历史文章下载（维护已发布存档）
+## 历史文章下载（维护已发布存档）
 
-### 2.1 存档结构（每篇文章一个文件夹）
+### 存档结构（每篇文章一个文件夹）
 ```
 archives/published/YYYY-MM-DD-标题slug/
   published.html   ← 微信发布版原文（真实渲染HTML，含样式+图片）
   content.md      ← 净化版Markdown（原写作稿，对比用）
 ```
 
-### 2.2 查看文章列表
+### 查看文章列表
 ```bash
 cd /root/.openclaw/skills/wxmp-wxdown && python3 scripts/wxdown-manage.py articles findyi --size 10
 ```
 
-### 2.3 下载已发布文章（html + md 双版本）
+### 下载已发布文章（html + md 双版本）
 ```bash
 cd /root/.openclaw/skills/wxmp-article-pipeline
 python3 scripts/archive_articles.py                  # 拉全部（跳过已存档）
@@ -226,17 +263,17 @@ python3 scripts/archive_articles.py --dry-run          # 只看计划不下载
 python3 scripts/archive_articles.py --latest          # 只拉最新一篇
 ```
 
-### 2.4 存档命名规范
+### 存档命名规范
 ```
 YYYY-MM-DD-slug/              ← 文章文件夹（date + 标题前12字）
   published.html              ← 发布版原文（微信真实HTML）
   content.md                  ← 原写作稿（对比用）
 ```
 
-### 2.5 更新索引
+### 更新索引
 下载后自动更新 `references/HISTORICAL-ARTICLES.md`，在已发布文章表格添加一行。
 
-### 2.6 首次初始化（把所有历史文章全部拉回来）
+### 首次初始化（把所有历史文章全部拉回来）
 ```bash
 cd /root/.openclaw/skills/wxmp-article-pipeline
 python3 scripts/archive_articles.py --force
@@ -244,9 +281,9 @@ python3 scripts/archive_articles.py --force
 
 ---
 
-## 三、图片处理规则（最容易出错）
+## 图片处理规则（最容易出错）
 
-### 3.1 必须逐张看图确认
+### 必须逐张看图确认
 
 **绝对不能凭文件名猜图片内容。**
 
@@ -259,7 +296,7 @@ python3 scripts/archive_articles.py --force
 
 **图片排除规则**：用户说哪张不用才排除，不要自己推断。遇到无关内容（如截图里有完全不相关的小贴士），在图注里说明，让用户决定。
 
-### 3.2 上传接口区分
+### 上传接口区分
 
 | 用途 | 接口 | 返回 | 作用 |
 |------|------|------|------|
@@ -268,7 +305,7 @@ python3 scripts/archive_articles.py --force
 
 **只有 `mmbiz.qpic.cn` 域名的图片才能在公众号正常显示。**
 
-### 3.3 封面图选择
+### 封面图选择
 
 - 封面图必须单独上传 `add_material`，获得 `media_id`
 - 封面一般选第一张有代表性的图，或专门设计的封面图
@@ -301,118 +338,62 @@ python3 scripts/archive_articles.py --force
 
 ---
 
-## 四、渲染规则（紫色主题）
+## 主题与渲染（极简速查）
 
-紫色主题是当前默认主题，基于已发布文章的真实样式提取。
+> ⚠️ 你不需要写任何 inline HTML。push_article.py 会按 theme JSON 服务端渲染。
+> 你只管：写 markdown + 传 `--theme 紫色渐变`。下面只列**必须知道**的边界条件。
 
-### 3.1 整体容器
+### 主题怎么选
 
-```html
-<section style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  font-size: 16px; color: #333; line-height: 1.8; padding: 20px;
-  background: linear-gradient(180deg, #fdf4ff 0%, #faf5ff 50%, #f5f3ff 100%);">
-```
+- 唯一权威源：`curl -s http://127.0.0.1:8070/api/themes | jq '.[].name'`
+- **news（长文）默认**：`紫色渐变`（宇龙个人号视觉冲击+辨识度）
+- **newspic（贴图）**：不渲染主题，纯文本+图片
+- 用户没指定就用默认，不要自己换主题
 
-### 3.2 段落
+### 唯一允许的手写 HTML：独立链接居中
 
-```html
-<p style="margin: 15px 0; text-align: justify;">正文内容</p>
-```
-
-### 3.3 H2 标题（代替 PART 编号）
-
-```html
-<h2 style="font-size: 22px; font-weight: bold; color: #7c3aed;
-  border-bottom: 2px solid #c4b5fd; padding-bottom: 8px;
-  margin: 25px 0 15px 0;">标题文字</h2>
-```
-
-### 3.4 金句 / 引用 → Blockquote
-
-```html
-<blockquote style="border-left: 4px solid #c084fc; padding: 15px 20px;
-  margin: 20px 0; background: rgba(192, 132, 252, 0.1); color: #6b21a8;
-  border-radius: 0 8px 8px 0;">
-  <p style="margin: 15px 0; text-align: justify;">金句内容</p>
-</blockquote>
-```
-
-### 3.5 加粗/强调
-
-```html
-<strong style="font-weight: bold; color: #6d28d9;">重点文字</strong>
-```
-
-### 3.6 分隔线
-
-```html
-<hr style="border: none; height: 2px;
-  background: linear-gradient(90deg, #ec4899, #8b5cf6, #3b82f6);
-  margin: 30px 0; border-radius: 1px;" />
-```
-
-### 3.7 图片 + 居中图注
-
-```html
-<p style="text-align: center; margin: 20px 0;">
-  <img style="max-width: 100%; border-radius: 8px;
-    box-shadow: rgba(0, 0, 0, 0.1) 0px 2px 8px;
-    height: auto !important;"
-    data-src="https://mmbiz.qpic.cn/..." alt="图片描述" />
-</p>
-<p style="text-align: center; color: #999; font-size: 13px; margin-bottom: 20px;">
-  图注文字
-</p>
-```
-
-### 3.8 独立链接（居中+颜色）
-
-当文章中有独立一行显示的链接时（如旧版回顾、新网站上线），用居中+颜色格式：
+独立一行的链接（旧版回顾、外站跳转）必须用：
 
 ```html
 <center><a href="https://example.com" style="color:#7c3aed">旧版网站回顾 →</a></center>
 ```
 
-push_article.py 渲染器会把以 `<` 开头且以 `</x>` 结尾的行当作原始 HTML 处理，不会包进 `<p style="text-align: justify">`，居中不会失效。
+push_article.py 把以 `<` 开头 + `</x>` 结尾的行当 raw HTML 透传，不包 `<p>`，居中才不会失效。
 
-### 3.9 列表
+### 文章末尾固定块（每篇 news 必加）
 
 ```html
-<ul style="margin: 15px 0; padding-left: 25px;">
-  <li style="margin: 8px 0;">列表项</li>
-</ul>
+<p style="display:none;"><mp-style-type data-value="10000"></mp-style-type></p>
 ```
 
-### 3.10 结尾（不加手写签名）
+微信编辑器识别用。push_article.py 会自动加，**但你写 markdown 时不要漏**。
 
-公众号已有固定底部模板（关注引导、往期推荐），正文末尾**不加手写签名**。
+### 签名规则（按类型分）
 
-**签名规则按类型分**：
-- ✅ **news（长文章）**：末尾必加 `我是宇龙，一个用 AI 搞副业的打工人。`（最近 4/18、4/22 两篇长文都加了）
-- ❌ **newspic（贴图/短帖）**：禁止加签名（最近 01/03/05/06 四篇贴图都没加）
-- 提到 AI 助手时点名 **Hermes（爱马仕）** — 不再用 OpenClaw / 小龙虾（4/13 已发文公开切换）
+| 类型 | 签名 |
+|---|---|
+| **news**（长文章） | ✅ 末尾必加 `我是宇龙，一个用 AI 搞副业的打工人。` |
+| **newspic**（贴图/短帖） | ❌ 禁止加签名 |
 
-> 来源：2026-04-25 对最近 6 篇真实文章的对比验证
+提到 AI 助手时叫 **Hermes / 爱马仕**（两个名字都行，看上下文），**不再用** OpenClaw / 小龙虾（4/13 已发文公开切换）。
 
-### 3.12 负面评价软化
+### 写作中的负面表述软化
 
-| 原稿写法 | 发布时处理 |
-|---------|----------|
-| "速度有点慢" | 删掉或改中性描述 |
+| 原稿写法 | 发布版 |
+|---|---|
+| "速度有点慢" | 删掉或改中性 |
 | "推脱，不肯动" | "需要再催一句" |
-| 提及具体政治性描述 | 删掉，只保留行为描述 |
+| 政治性描述 | 删，只保留行为 |
 
-### 3.13 mp-style-type 标记
+### 紫色渐变主题长啥样（参考，不是让你抄）
 
-文章末尾加上（微信编辑器识别用）：
-
-```html
-<p style="display: none;"><mp-style-type data-value="10000"></mp-style-type></p>
-```
+JSON 文件：`/root/.openclaw/workspace-restore/docs/wxmp-themes/mdnice/紫色渐变.json`
+渲染效果：渐变紫底色 + 紫色 H2 标题（`#7c3aed`）+ 卡片式 blockquote + 彩色渐变 hr。
+新增主题：在 mdnice/ 加 JSON，**不需要改 SKILL，不需要 commit**。
 
 ---
 
-## 五、推送前 QC 清单（全部 □ 通过再推）
+## 推送前 QC 清单（全部 □ 通过再推）
 
 ### □ 标题检查
 - [ ] 标题 ≤ 64 字（文章）/ ≤ 20 字（贴图）
@@ -454,7 +435,7 @@ push_article.py 渲染器会把以 `<` 开头且以 `</x>` 结尾的行当作原
 
 ---
 
-## 六、推送草稿（关键：编码）
+## 推送 API（编码坑 — ensure_ascii=False）
 
 **必须用 `ensure_ascii=False` + 手动编码：**
 
@@ -483,7 +464,7 @@ response = requests.post(
 
 ---
 
-## 七、常见踩坑速查
+## 常见踩坑速查
 
 | 坑 | 现象 | 解决 |
 |----|------|------|
@@ -507,7 +488,7 @@ response = requests.post(
 
 ---
 
-## 八、凭据位置
+## 凭据位置
 
 ```
 /root/.openclaw/secrets/wxmp-yulong.env
@@ -517,7 +498,7 @@ response = requests.post(
 
 ---
 
-## 九、写作风格速查
+## 写作风格速查
 
 详见 `references/writing-style.md`（必须读）和 `references/GLOSSARY.md`（术语表）。
 
@@ -533,13 +514,7 @@ response = requests.post(
 
 ---
 
-## 十、主题扩展
-
-当前默认主题为**紫色主题**。后续如需新增主题，在本文件"三、渲染规则"中新增对应章节即可，通过参数 `--theme` 切换。
-
----
-
-## 十一、存档管理（发布后触发）
+## 存档管理（发布后触发）
 
 存档目的：保留原稿（content.md）和发布版（published.html），方便后续对比修改。
 
@@ -708,18 +683,6 @@ python3 $HELPER add-draft \
 python3 $HELPER list --confirmed-only
 python3 $HELPER remove --id <review_id>
 ```
-
-### 个人签名规则（写文章时遵守）
-
-任何完整文章在写入 `drafts/{id}/meta.json` 的 `content` 字段时，**末尾必须加**：
-
-```
----
-
-我是宇龙，一个用 AI 搞副业的打工人。
-```
-
-未发布的草稿、待 review 的文章都要带。如果发现没有，编辑 `meta.json` 补上再 `add-draft`。
 
 ### 完整文档
 
