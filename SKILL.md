@@ -38,6 +38,68 @@ description: >
 
 **想加新主题？**：在 `/root/.openclaw/workspace-restore/docs/wxmp-themes/mdnice/{name}.json` 放一个 JSON 文件（参考 `紫色渐变.json` 的 schema），**不需要配套 .html**，立刻在 `/api/themes` 可见、任何文章都能用 `--theme {name}` 切。加新主题也**不需要 commit**（主题文件不属于 wxmp-studio 仓库，属于 workspace-restore）。
 
+### 🚨 6 条防翻车铁律（来自 5 次真实会话提炼，2026-04-25）
+
+写文章时这 6 条违反任意一条 = 直接翻车，全部固化为硬约束：
+
+#### ① 写完文章后，必须在回复里贴"图文对照表"
+不是默默检查，是**实际打印出来给用户看一眼**：
+
+```
+图1 (062555-ae86.jpeg) → §1 段落 → 图注："库克在抖音直播间卖小米SU7"
+图2 (063012-bc91.jpeg) → §2 段落 → 图注："余承东直播间卖苹果全家桶"
+...
+```
+
+**为什么硬要求**：4/22 库克稿"美女主播配错段、苹果CEO混在中间"、4/18 Claude Design"ABC 三版风格 C 配错图"、4/13"Claude Code 配置龙虾的图被误读"——这是反复翻车的 #1 错误。模型自己默想"应该没问题"是不够的，必须打印对照表强制 self-check。
+
+#### ② 图片默认全用，要排除哪张必须用户明说
+**反向白名单**：用户给的图全部用上，除非用户**明确点名**"这张不用"。
+
+- ❌ 不要自己判断"这张图意义不大、删掉"
+- ❌ 不要自己判断"13 张太多、精简到 8 张"
+- ✅ 全部插入对应段落，无关的也插上并在图注里标注让用户决定
+
+**为什么**：4/18 Yulong 反复说"除了授权github那张，其他都用！""授权图你怎么又传进去了！？？？""总共只有13张图吗？不对吧？"——模型默认"少而稳"和 Yulong 的偏好"全用"完全相反。
+
+#### ③ 用户确认过的标题/封面 → 锁定，禁止"再优化"
+一旦用户说"这个标题不错"或"用这张封面"，**这条信息进入只读区**。后续任何重写、调整、迭代都不能动它，除非用户主动说"换"。
+
+- 4/13 Yulong：「刚才的标题不是不错嘛，怎么又改了？」
+- 4/18 Yulong：「封面图为什么不是用的新网站截图而是旧网站截图？」
+
+**实操**：标题和封面 media_id 确认后立刻在回复里 echo 一遍"已锁定：标题=XXX，封面=img_NN"，作为后续步骤的硬约束。
+
+#### ④ 副标题（digest）必须单独发一条消息，不写进正文
+- 文章 `meta.json` 的 `content` 字段：**不含**副标题
+- 推送时 `digest` 字段填副标题
+- 用户看到回复："副标题：xxxxxxxxx（≤120字，自己粘贴到公众号后台）"——**单独一条消息**
+
+**为什么**：4/13 Yulong 明示"副标题不需要出现在正文，直接发我文字就行（单独发条消息），我自己粘贴。（更新到skill）"——已经在 QC 清单第 7 条但 m2.7 仍反复出错，所以提级到铁律。
+
+#### ⑤ 写作时优先用 Yulong 的原话（语音/口语 > 模型改写）
+Yulong 给的素材里，**语音转写、口语句、自己写的草稿原文** = 第一优先级。模型只做：
+- 顺序调整（结尾前置等）
+- 错字修复
+- 段落切分
+
+**禁止**：把"我决定换掉龙虾"改成"决定迁移到新平台"这种**书面化重写**。
+
+- 4/13：「记得用我语音打字的那些内容啊，我刚才强调也说了的哈！」
+- 4/18：「'适合想让访客一眼记住那个拍风光的人这个目标'这是说的啥？不太人话啊！！」「人话这种举一反三啊」
+
+#### ⑥ 上下文 compaction / interrupt 后，第一件事是补读最近的用户修正
+看到 `[CONTEXT COMPACTION]` 或 `[System note: previous turn was interrupted]` 时，**不要直接接着干**。先：
+
+1. 读最近 5 条 user 消息（不是 assistant 自己的总结）
+2. 找到所有"不对"、"重新"、"改"、"应该是"的修正点
+3. 在回复里复述："我了解到你已经确认了 X、修正了 Y、还在等 Z"
+4. **得到用户"对，继续"再往前**
+
+**为什么**：4/22 改稿 3 次 interrupt、4/23 多次 interrupt 后模型每次都"忘了之前的约定"重新犯错。opus 4.7 不太会触发 compaction，但写上更安全。
+
+---
+
 ### 🧊 用户触发词 → freeze-latest 流程
 
 当用户说以下任何一句，立即跑 `python3 /root/.openclaw/workspace/projects/wxmp-studio/scripts/review_helper.py freeze-latest`：
@@ -229,7 +291,7 @@ python3 scripts/archive_articles.py --force
 | 图注不知道写什么 | 写图片里"发生了什么"，不写"这是X截图" |
 | 配图和文字不对应 | 停下来重新匹配，再继续写 |
 | 语气太正式 | 改成"我/你"，删掉"的""了" |
-| 不知道怎么结尾 | 亮点总结 + OpenClaw点名 + 表情，不加手写签名 |
+| 不知道怎么结尾 | 亮点总结 + Hermes（爱马仕）点名 + 表情 |
 | 不知道怎么软化负面评价 | 只说行为（"被推脱了"），不说感受（"态度差"） |
 | 有政治/争议性内容 | 删，只保留行为描述 |
 | 不确定某个词对不对 | 不肯定的不写，不确定事实的删掉 |
@@ -325,10 +387,12 @@ push_article.py 渲染器会把以 `<` 开头且以 `</x>` 结尾的行当作原
 
 公众号已有固定底部模板（关注引导、往期推荐），正文末尾**不加手写签名**。
 
-- ❌ 不要加"我是宇龙，一个用 AI 搞副业的打工人。"
-- ✅ 正文自然结束即可，结尾提到 AI 助手时点名 **OpenClaw**
+**签名规则按类型分**：
+- ✅ **news（长文章）**：末尾必加 `我是宇龙，一个用 AI 搞副业的打工人。`（最近 4/18、4/22 两篇长文都加了）
+- ❌ **newspic（贴图/短帖）**：禁止加签名（最近 01/03/05/06 四篇贴图都没加）
+- 提到 AI 助手时点名 **Hermes（爱马仕）** — 不再用 OpenClaw / 小龙虾（4/13 已发文公开切换）
 
-> 来源：2026-03-20 Yulong 审稿确认，手写签名显得套路化和重复
+> 来源：2026-04-25 对最近 6 篇真实文章的对比验证
 
 ### 3.12 负面评价软化
 
@@ -367,7 +431,8 @@ push_article.py 渲染器会把以 `<` 开头且以 `</x>` 结尾的行当作原
 - [ ] 正文 > 100 字
 - [ ] 无 `<!-- 配图 -->` 等 HTML 注释残留
 - [ ] PART 编号后带描述（"PART 1 Skill是什么"，不是空"PART 1"）
-- [ ] 结尾无手写签名（公众号底部已有模板）
+- [ ] news 类型：结尾加了"我是宇龙，一个用 AI 搞副业的打工人。"
+- [ ] newspic 类型：结尾**没有**手写签名
 - [ ] 负面评价已软化（"有点慢"→删掉或改中性）
 - [ ] 无幻觉 Skill 名（只写真实存在的 Skill）
 - [ ] 语气符合 references/writing-style.md 总则
@@ -383,7 +448,7 @@ push_article.py 渲染器会把以 `<` 开头且以 `</x>` 结尾的行当作原
 - [ ] `digest`（摘要）≤ 120 字
 - [ ] 独立一行的链接已用居中+颜色格式（`<center><a href="..." style="color:#7c3aed">文字 →</a></center>`）
 - [ ] `draft/batchget` 确认草稿箱无同标题草稿（如有 → 告知用户等确认）
-- [ ] 结尾有 OpenClaw 点名
+- [ ] 结尾点名 Hermes（爱马仕），不写 OpenClaw / 小龙虾
 - [ ] 互动引导已拆行 + 加通俗词（末尾问句）
 - [ ] 无政治性描述（只保留行为描述）
 
@@ -462,7 +527,8 @@ response = requests.post(
 - PART 编号分段（如"PART 1 Skill是什么"），编号后必须带描述，不能空着
 - 金句用 Blockquote 引用块
 - 每图必须有图注
-- 结尾不加手写签名，提到 AI 助手时点名 OpenClaw
+- news 长文结尾加"我是宇龙，一个用 AI 搞副业的打工人。"；newspic 贴图不加
+- 提到 AI 助手时点名 Hermes（爱马仕），不再用 OpenClaw / 小龙虾
 - 负面评价软化处理
 
 ---
@@ -527,40 +593,6 @@ python3 scripts/diff_articles.py "2026-04-09-完整文件夹名"  # 精确匹配
 
 用于：检查发布后实际改了什么，评估改稿效果。
 
-### 对比用存档（每次推草稿自动留存）
-
-**目的**：保留推草稿那一刻的原文，用于和发布后版本做格式干净的内容对比。
-
-**路径**：`archives/last-push/`
-
-| 文件 | 触发时机 | 用来做什么 |
-|------|---------|-----------|
-| `original.md` | push_article.py 推草稿成功后自动复制 | 对比内容改动（格式一致，无渲染干扰） |
-| `pre-publish.html` | push_article.py 推草稿成功后自动复制 | 对比你发布前在草稿箱改了什么 |
-| `published.html` | 发布后 freeze-latest 拉取 | 对比最终发布版和推草稿时的差异 |
-
-**自动存档逻辑**（在 `push_article.py` 里实现）：
-```python
-import shutil, os
-last_push = "/root/.openclaw/skills/wxmp-article-pipeline/archives/last-push"
-os.makedirs(last_push, exist_ok=True)
-shutil.copy(markdown_file, f"{last_push}/original.md")
-shutil.copy(rendered_html, f"{last_push}/pre-publish.html")
-```
-
-**对比命令**：
-```bash
-# 内容 diff（原稿 vs 发布版）
-diff archives/last-push/original.md archives/last-push/published.md
-
-# 渲染 diff（推草稿版 vs 发布版，看发布前改了什么）
-diff archives/last-push/pre-publish.html archives/last-push/published.html
-```
-
-**注意**：
-- `archives/last-push/` 只保留最新一次推送的内容，每次推草稿自动覆盖
-- 发布后记得跑 `freeze-latest` 把 `published.html` 补上，否则三个文件缺一个
-
 ---
 
 ## 已渲染草稿 review tab — 数据操作（不是改项目）
@@ -586,7 +618,7 @@ diff archives/last-push/pre-publish.html archives/last-push/published.html
 - ❌ 用 `cat > review/xxx.json` / `echo > ...` / Write 工具直接创建 review JSON — 用 `review_helper.py`
 - ❌ 修改 `wxmp-studio/app.py`、重启服务、cp 图到 static 目录
 - ❌ 用 `theme_source: "purple_html"` 或其他不存在的目录（合法值只有 `mdnice` 和 `jahseh`）
-- ❌ 文章末尾忘了"我是宇龙，一个用 AI 搞副业的打工人。"
+- ❌ news 长文末尾忘了"我是宇龙，一个用 AI 搞副业的打工人。"（newspic 贴图不加）
 
 ### ✅ 决策树
 
