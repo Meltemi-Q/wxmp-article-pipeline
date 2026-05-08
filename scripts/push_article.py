@@ -145,7 +145,7 @@ def rainbow_blockquote(text: str) -> str:
 def rainbow_image_block(url: str, alt: str, caption: str) -> str:
     return (
         '<p style="margin: 20px 0 8px; text-align: center;">'
-        f'<img src="{url}" alt="{alt}" '
+        f'<img src="" data-src="{url}" alt="{alt}" '
         'style="display: block; width: 100%; max-width: 100%; border-radius: 12px; margin: 0 auto;">'
         '</p>'
         f'<p style="margin: 0 0 24px; font-size: 13px; color: #888888; text-align: center; line-height: 1.6;">{caption}</p>'
@@ -388,6 +388,11 @@ def validate_html(html: str, title: str) -> list[str]:
     if len(html.strip()) < 100:
         errors.append("③ 正文内容过短（< 100 字符），可能渲染失败")
 
+    # ④ 图片必须用 data-src 而不是 src（微信要求 data-src 格式）
+    # 用负向后看断言排除 data-src="http 的情况
+    if re.search(r'(?<!data-)src="http', html):
+        errors.append("④ 图片使用了 src= 而非 data-src=，微信文章必须用 data-src 格式。请检查 purple_image_block 函数或手动修复 HTML。")
+
     return errors
 
 
@@ -475,7 +480,7 @@ def purple_blockquote(text: str) -> str:
 def purple_image_block(url: str, alt: str, caption: str) -> str:
     return (
         '<p style="text-align: center; margin: 20px 0;">'
-        f'<img src="{url}" alt="{alt}" '
+        f'<img src="" data-src="{url}" alt="{alt}" '
         'style="max-width: 100%; border-radius: 8px; box-shadow: rgba(0,0,0,0.1) 0px 2px 8px; '
         'height: auto !important;">'
         '</p>'
