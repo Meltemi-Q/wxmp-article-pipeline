@@ -55,6 +55,20 @@ AI_FLAVOR_PATTERNS = [
     r"电子世界里可以呼风唤雨",
     r"框架是存在的",
     r"大概也是同样的思路",
+    r"这时代确实有点魔幻",
+    r"思考和执行能力都还行",
+    r"理解能力还是有的",
+    r"搜索各种也还算全能",
+    r"非常敬业",
+    r"后面我在想",
+    r"肯定能变得非常方便",
+    r"动动嘴什么都给我们做了",
+    r"后面无非就是",
+    r"不一定要懂技术细节",
+    r"很多问题 AI 能帮我们解决",
+    r"只要想，有明确目标",
+    r"游戏只是一个例子",
+    r"现在到了一个有 AI 就能",
 ]
 
 HARD_SALES_PATTERNS = [
@@ -81,6 +95,21 @@ UNSUPPORTED_CLAIM_PATTERNS = [
     r"15 分钟",
     r"我没急着排队",
     r"站着看了一会儿",
+]
+
+TITLE_OVERCLAIM_PATTERNS = [
+    r"一个工作室的活",
+    r"干了一个工作室",
+    r"嘴上说说，游戏就做好了",
+    r"手机语音说几句.*工作室",
+]
+
+WEAK_SUMMARY_PATTERNS = [
+    r"现在我已经把.*做出来了",
+    r"随着这个的迭代",
+    r"手机和电脑都登录同一个软件",
+    r"用什么平台、什么工具去呈现",
+    r"手机端用什么看更方便",
 ]
 
 
@@ -145,6 +174,21 @@ def has_preface(output_text: str) -> bool:
     return not (first in {"正文", "## 正文", "**正文**"} or first.startswith("# "))
 
 
+def first_heading(output_text: str) -> str:
+    for line in output_text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("#"):
+            return stripped
+    return ""
+
+
+def meta_first_heading_hits(output_text: str) -> list[str]:
+    heading = first_heading(output_text)
+    if re.search(r"标题候选|正文|最终交付|交付摘要", heading):
+        return [heading]
+    return []
+
+
 def section_present(output_text: str, keyword: str) -> bool:
     return keyword in output_text
 
@@ -164,10 +208,13 @@ def score(prompt_text: str, output_text: str) -> dict:
     ai_flavor_hits = pattern_hits(AI_FLAVOR_PATTERNS, output_text)
     hard_sales_hits = pattern_hits(HARD_SALES_PATTERNS, output_text)
     unsupported_claim_hits = pattern_hits(UNSUPPORTED_CLAIM_PATTERNS, output_text)
+    title_overclaim_hits = pattern_hits(TITLE_OVERCLAIM_PATTERNS, output_text)
+    weak_summary_hits = pattern_hits(WEAK_SUMMARY_PATTERNS, output_text)
     uncaptioned = uncaptioned_body_images(output_text)
     loose_parts = loose_part_headings(output_text)
     part_hits = part_token_hits(output_text)
     order_mismatches = image_order_mismatches(expected, refs) if expected else []
+    meta_heading_hits = meta_first_heading_hits(output_text)
     has_subtitle = section_present(output_text, "副标题")
     has_mapping = section_present(output_text, "图文对照")
     has_todo = section_present(output_text, "待确认")
@@ -181,6 +228,9 @@ def score(prompt_text: str, output_text: str) -> dict:
     points -= min(24, len(ai_flavor_hits) * 4)
     points -= min(18, len(hard_sales_hits) * 6)
     points -= min(24, len(unsupported_claim_hits) * 6)
+    points -= min(18, len(title_overclaim_hits) * 6)
+    points -= min(18, len(weak_summary_hits) * 4)
+    points -= min(15, len(meta_heading_hits) * 15)
     points -= min(18, len(uncaptioned) * 2)
     points -= min(16, len(loose_parts) * 4)
     points -= min(20, len(part_hits) * 3)
@@ -206,6 +256,9 @@ def score(prompt_text: str, output_text: str) -> dict:
         "ai_flavor_hits": ai_flavor_hits,
         "hard_sales_hits": hard_sales_hits,
         "unsupported_claim_hits": unsupported_claim_hits,
+        "title_overclaim_hits": title_overclaim_hits,
+        "weak_summary_hits": weak_summary_hits,
+        "meta_first_heading_hits": meta_heading_hits,
         "uncaptioned_body_images": uncaptioned,
         "loose_part_headings": loose_parts,
         "part_token_hits": part_hits,
