@@ -26,6 +26,25 @@ curl -s -b /tmp/wxmp_cookie.txt -H 'content-type: application/json' -d '{"mode":
 /usr/local/bin/wxmp-sync mp-sync --limit 200
 ```
 
+## 短句入口（用户日常只需要这样说）
+
+用户不需要提供长 prompt。遇到下面这种 50-100 字短句时，直接按映射执行，不要反问：
+
+| 用户短句 | 默认解释 | 必跑入口 |
+|---|---|---|
+| “根据 wxmp 最新草稿写公众号文章推草稿箱” | 最新草稿 + `article` + 一键写稿/推草稿 | `python3 /root/.openclaw/workspace/projects/wxmp-studio/scripts/wxmpctl.py prompt latest --mode article --action one_pass` |
+| “根据 wxmp 最新草稿写一篇公众号文章，先给我审” | 最新草稿 + `article` + 只写不推 | `python3 /root/.openclaw/workspace/projects/wxmp-studio/scripts/wxmpctl.py prompt latest --mode article --action write_only` |
+| “根据 wxmp 最新草稿发贴图/小绿书” | 最新草稿 + `newspic` + 一键写稿/推草稿 | `python3 /root/.openclaw/workspace/projects/wxmp-studio/scripts/wxmpctl.py prompt latest --mode newspic --action one_pass` |
+| “根据 wxmp 最新草稿写贴图，先给我看” | 最新草稿 + `newspic` + 只写不推 | `python3 /root/.openclaw/workspace/projects/wxmp-studio/scripts/wxmpctl.py prompt latest --mode newspic --action write_only` |
+
+执行纪律：
+
+- 先跑上面的 `wxmpctl.py prompt latest ...`，不要直接根据聊天记录写。
+- 用返回的结构化 prompt 写稿；它已经包含事实卡、图片块、article/newspic 分流和 QC 命令。
+- `推草稿箱/一键/直接发` = `--action one_pass`；`先给我看/先审/写一版` = `--action write_only`。
+- 用户说“贴图/小绿书/图片帖”必须用 `--mode newspic`；用户说“文章/公众号文章”默认用 `--mode article`。
+- QC 不过不要推送；先自修或只给失败项。
+
 ## 触发词路由（先分流，再执行）
 
 | 用户怎么说 | 用哪个 skill / 命令 | 目的 |
