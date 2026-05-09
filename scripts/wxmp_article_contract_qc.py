@@ -112,6 +112,15 @@ WEAK_SUMMARY_PATTERNS = [
     r"手机端用什么看更方便",
 ]
 
+NEWSPIC_FORBIDDEN_PATTERNS = [
+    r"副标题",
+    r"(?m)^##\s*0?\d+",
+    r"(?m)^#\s*正文",
+    r"公众号文章",
+    r"长文",
+    r"1200-1800",
+]
+
 
 def uncaptioned_body_images(output_text: str) -> list[str]:
     lines = output_text.splitlines()
@@ -197,7 +206,7 @@ def pattern_hits(patterns: list[str], text: str) -> list[str]:
     return [p for p in patterns if re.search(p, text, re.M)]
 
 
-def score(prompt_text: str, output_text: str) -> dict:
+def score(prompt_text: str, output_text: str, article_type: str = "news") -> dict:
     expected = expected_images(prompt_text)
     refs = body_image_refs(output_text)
     missing = [name for name in expected if name not in refs]
@@ -210,6 +219,7 @@ def score(prompt_text: str, output_text: str) -> dict:
     unsupported_claim_hits = pattern_hits(UNSUPPORTED_CLAIM_PATTERNS, output_text)
     title_overclaim_hits = pattern_hits(TITLE_OVERCLAIM_PATTERNS, output_text)
     weak_summary_hits = pattern_hits(WEAK_SUMMARY_PATTERNS, output_text)
+    newspic_forbidden_hits = pattern_hits(NEWSPIC_FORBIDDEN_PATTERNS, output_text) if article_type == "newspic" else []
     uncaptioned = uncaptioned_body_images(output_text)
     loose_parts = loose_part_headings(output_text)
     part_hits = part_token_hits(output_text)
@@ -235,17 +245,21 @@ def score(prompt_text: str, output_text: str) -> dict:
     points -= min(16, len(loose_parts) * 4)
     points -= min(20, len(part_hits) * 3)
     points -= min(16, len(order_mismatches) * 4)
-    if not has_subtitle:
+    if article_type == "news" and not has_subtitle:
         points -= 10
+    if article_type == "newspic" and has_subtitle:
+        points -= 12
     if not has_mapping:
         points -= 10
     if not has_todo:
         points -= 5
     if "PART " in output_text and not re.search(r"(?m)^#{1,3}\s*(?:\d+\s*)?PART\s+\d+", output_text):
         points -= 8
+    points -= min(24, len(newspic_forbidden_hits) * 8)
 
     return {
         "score": max(points, 0),
+        "article_type": article_type,
         "expected_image_count": len(expected),
         "body_image_count": len(refs),
         "missing_body_images": missing,
@@ -259,6 +273,7 @@ def score(prompt_text: str, output_text: str) -> dict:
         "title_overclaim_hits": title_overclaim_hits,
         "weak_summary_hits": weak_summary_hits,
         "meta_first_heading_hits": meta_heading_hits,
+        "newspic_forbidden_hits": newspic_forbidden_hits,
         "uncaptioned_body_images": uncaptioned,
         "loose_part_headings": loose_parts,
         "part_token_hits": part_hits,
@@ -273,6 +288,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--prompt")
     parser.add_argument("--expected-images", help="Comma-separated expected image filenames.")
+    parser.add_argument("--article-type", choices=["news", "newspic"], default="news")
     parser.add_argument("--output", required=True)
     args = parser.parse_args()
     if args.prompt:
@@ -281,7 +297,7 @@ def main() -> None:
         names = [x.strip() for x in (args.expected_images or "").split(",") if x.strip()]
         prompt_text = "\n".join(names)
     output_text = Path(args.output).read_text(encoding="utf-8", errors="replace")
-    print(json.dumps(score(prompt_text, output_text), ensure_ascii=False, indent=2))
+    print(json.dumps(score(prompt_text, output_text, article_type=args.article_type), ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":

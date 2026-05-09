@@ -163,6 +163,7 @@ Yulong 当前公众号内容要兼顾“真实 AI 工具使用记录”和“未
 - 不用长文主题 HTML。
 - 文案是短句和图片流，服务图片浏览。
 - 推草稿必须带 `article_type=newspic`。
+- 贴图 QC 必须使用 `--article-type newspic`，且 `newspic_forbidden_hits` 为空。
 
 ## 9. 一键模式
 

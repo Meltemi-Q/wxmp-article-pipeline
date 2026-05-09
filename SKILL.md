@@ -347,6 +347,7 @@ Yulong 给的素材里，**语音转写、口语句、自己写的草稿原文**
 - 不写副标题 digest。
 - 不走紫色主题 HTML 长文渲染。
 - 最终交付为：贴图标题、贴图正文、图片顺序表、待确认项。
+- 贴图 QC 必须使用 `--article-type newspic`，且 `newspic_forbidden_hits` 为空。
 
 **贴图限制**：
 - `newspic` 的 `image_info` 必填，不支持零图片贴图
