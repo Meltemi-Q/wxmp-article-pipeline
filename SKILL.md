@@ -97,6 +97,18 @@ curl -s -b /tmp/wxmp_cookie.txt -H 'content-type: application/json' -d '{"mode":
 - 标题优先短句，不超过 12 个字更好。
 - 小节编号用 `1 标题`、`2 标题`，不要用零开头编号、英文分段标签、模板式分段词。
 
+写作前不要只套 skill 规则，还要做三件事：
+
+1. 看历史指标：阅读、分享、点赞、评论、互动率，找相似爆款结构。
+2. 看用户语料：从 Obsidian / 历史聊天里提炼本篇相关口吻，只提炼表达方式，不搬隐私事实。
+3. 看本篇素材：prompt、截图、结果文件、用户最新修正必须优先于旧模板。
+
+对应参考：
+
+- `references/data-driven-writing-workflow.md`
+- `references/personal-voice-rules.md`
+- `references/prompt-result-case-pattern.md`
+
 人味儿规则：
 
 - 不要故意塞错别字；故意错字也很假。
