@@ -378,8 +378,8 @@ def validate_html(html: str, title: str) -> list[str]:
     # ② 所有图片已替换为微信 URL
     if "/root/" in html:
         errors.append("② 正文包含本地路径（/root/...），图片未上传到微信")
-    if "meltemi.fun" in html:
-        errors.append("② 正文包含内网图片 URL（meltemi.fun），请替换为微信 URL")
+    if "meltemi.fun" in html or "meltemi.vip" in html:
+        errors.append("② 正文包含内网图片 URL（meltemi.fun/meltemi.vip），请替换为微信 URL")
     if "<!-- ⚠️" in html:
         count = html.count("<!-- ⚠️")
         errors.append(f"② 有 {count} 张图片未映射（image_map 里找不到），请补充图片映射")
@@ -447,6 +447,7 @@ def verify_draft(token: str, media_id: str) -> dict:
         timeout=60,
     )
     resp.raise_for_status()
+    resp.encoding = "utf-8"  # 微信响应不带 charset，不设会按 latin-1 解码导致中文乱码
     result = resp.json()
     items = result.get("item", [])
     target = next((item for item in items if item.get("media_id") == media_id), None)
@@ -683,6 +684,459 @@ def render_markdown_to_purple_html(
 
 
 
+
+def blue_blockquote(text: str) -> str:
+    return (f'<section style="margin: 20px 0; padding: 16px 18px; background: #eff6ff; '
+            f'border-left: 4px solid #2563eb; border-radius: 8px; color: #1e3a8a; '
+            f'font-size: 15px; line-height: 1.8;">{text}</section>')
+
+
+def blue_image_block(url: str, alt: str, caption: str) -> str:
+    cap = (f'<p style="margin: 8px 0 0; font-size: 13px; color: #94a3b8; text-align: center; '
+           f'line-height: 1.6;">{caption}</p>') if caption else ''
+    return (f'<section style="margin: 22px 0; text-align: center;">'
+            f'<img src="{url}" alt="{alt}" style="max-width: 100%; border-radius: 10px;"/>{cap}</section>')
+
+
+def blue_separator() -> str:
+    return ('<section style="margin: 28px 0; height: 2px; '
+            'background: linear-gradient(90deg, transparent, #93c5fd, transparent);"></section>')
+
+
+def blue_h2(title: str) -> str:
+    return (f'<h2 style="margin: 30px 0 16px; font-size: 20px; font-weight: bold; color: #1d4ed8; '
+            f'border-left: 5px solid #2563eb; padding-left: 12px; line-height: 1.5;">{title}</h2>')
+
+
+def blue_h3(title: str) -> str:
+    return (f'<h3 style="margin: 24px 0 12px; font-size: 17px; font-weight: bold; '
+            f'color: #2563eb;">{title}</h3>')
+
+
+def mac_code_block(code_lines: list) -> str:
+    import html as _h
+    body = _h.escape("\n".join(code_lines))
+    return (
+        '<section style="margin: 20px 0; border-radius: 6px; overflow: hidden; '
+        'box-shadow: rgba(0,0,0,0.55) 0px 2px 10px;">'
+        '<section style="background: #282c34; padding: 9px 14px; line-height: 1;">'
+        '<span style="font-size:22px; letter-spacing:8px; line-height:1; font-family: Arial,sans-serif;">'
+        '<span style="color:#ff5f56;">●</span>'
+        '<span style="color:#ffbd2e;">●</span>'
+        '<span style="color:#27c93f;">●</span></span>'
+        '</section>'
+        '<section style="background: #282c34; padding: 14px 16px; overflow-x: auto;">'
+        f'<pre style="margin:0; color:#abb2bf; font-family: Operator Mono,Consolas,Menlo,monospace; '
+        f'font-size:14px; line-height:1.7; white-space: pre;">{body}</pre>'
+        '</section></section>'
+    )
+def render_markdown_to_blue_html(
+    markdown_text: str,
+    image_map: dict,
+) -> str:
+    """将 Markdown 转换为萌蓝主题 HTML（含 Mac 窗口代码块）。"""
+    lines = markdown_text.splitlines()
+    html_parts = [
+        '<section style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, '
+        '\'Helvetica Neue\', Arial, sans-serif; font-size: 16px; color: #333; line-height: 1.8; '
+        'padding: 20px; '
+        'background: linear-gradient(180deg, #eff6ff 0%, #f0f9ff 50%, #eff6ff 100%);">',
+    ]
+
+    part_counter = 0
+    pending_blockquote_lines: list[str] = []
+
+    def flush_blockquote():
+        nonlocal pending_blockquote_lines
+        if pending_blockquote_lines:
+            text = " ".join(pending_blockquote_lines).strip()
+            html_parts.append(blue_blockquote(text))
+            pending_blockquote_lines = []
+
+    def inline_format(text: str) -> str:
+        text = re.sub(r'\*\*(.+?)\*\*', r'<strong style="font-weight: bold; color: #1d4ed8;">\1</strong>', text)
+        text = re.sub(r'\*(.+?)\*', r'<em>\1</em>', text)
+        text = re.sub(r'`(.+?)`', r'<code>\1</code>', text)
+        return text
+
+    # 跳过第一行 # 标题（避免重复标题）
+    skip_first_h1 = False
+    if lines and lines[0].startswith("# ") and not lines[0].startswith("## "):
+        skip_first_h1 = True
+
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.strip()
+
+        # 跳过 HTML 注释
+        if re.match(r'^\s*<!--.*-->\s*$', line):
+            i += 1
+            continue
+
+        # 跳过第一行 H1
+        if skip_first_h1 and i == 0 and stripped.startswith("# ") and not stripped.startswith("## "):
+            skip_first_h1 = False
+            i += 1
+            continue
+
+        # 分隔符
+        if stripped in ("---", "***", "* * *"):
+            flush_blockquote()
+            html_parts.append(blue_separator())
+            i += 1
+            continue
+
+        # 引用块
+        if stripped.startswith("> "):
+            pending_blockquote_lines.append(inline_format(stripped[2:]))
+            i += 1
+            continue
+        else:
+            flush_blockquote()
+
+        # H2 → 紫色标题
+        if stripped.startswith("## "):
+            part_counter += 1
+            title = inline_format(stripped[3:].strip())
+            html_parts.append(blue_h2(title))
+            i += 1
+            continue
+
+        # H3
+        if stripped.startswith("### "):
+            title = inline_format(stripped[4:].strip())
+            html_parts.append(blue_h3(title))
+            i += 1
+            continue
+
+        # 围栏代码块 ``` → Mac 窗口样式
+        if stripped.startswith("```"):
+            code_lines = []
+            i += 1
+            while i < len(lines) and not lines[i].strip().startswith("```"):
+                code_lines.append(lines[i])
+                i += 1
+            i += 1  # 跳过结束围栏
+            html_parts.append(mac_code_block(code_lines))
+            continue
+
+        # 图片
+        img_match = re.match(r'!\[([^\]]*)\]\(([^)]+)\)', stripped)
+        if img_match:
+            alt = img_match.group(1)
+            path = img_match.group(2)
+            basename = Path(path).name
+            img_info = image_map.get(path) or image_map.get(basename)
+            # 自动提取图注：图片后紧跟的空行+*斜体行* 作为 caption
+            caption = ""
+            if img_info:
+                caption = img_info.get("caption", "")
+            peek = i + 1
+            while peek < len(lines) and lines[peek].strip() == "":
+                peek += 1
+            if not caption and peek < len(lines):
+                cap_match = re.match(r'^\*([^*]+)\*$', lines[peek].strip())
+                if cap_match:
+                    caption = cap_match.group(1)
+                    i = peek
+            if img_info:
+                html_parts.append(blue_image_block(
+                    url=img_info["url"],
+                    alt=alt if alt else img_info.get("alt", ""),
+                    caption=caption,
+                ))
+            else:
+                html_parts.append(f'<!-- ⚠️ 图片未映射: {path} -->')
+                print(f"⚠️  图片未映射: {path}")
+            i += 1
+            continue
+
+        # 无序列表
+        if stripped.startswith("- ") or stripped.startswith("* "):
+            list_items = []
+            while i < len(lines) and (lines[i].strip().startswith("- ") or lines[i].strip().startswith("* ")):
+                item = lines[i].strip()[2:]
+                list_items.append(f'<li style="margin: 0 0 8px;">{inline_format(item)}</li>')
+                i += 1
+            html_parts.append(
+                '<ul style="margin: 15px 0; padding-left: 25px;">'
+                + "".join(list_items)
+                + "</ul>"
+            )
+            continue
+
+        # 有序列表
+        if re.match(r'^\d+\. ', stripped):
+            list_items = []
+            while i < len(lines) and re.match(r'^\d+\. ', lines[i].strip()):
+                item = re.sub(r'^\d+\. ', '', lines[i].strip())
+                list_items.append(f'<li style="margin: 0 0 8px;">{inline_format(item)}</li>')
+                i += 1
+            html_parts.append(
+                '<ol style="margin: 15px 0; padding-left: 25px;">'
+                + "".join(list_items)
+                + "</ol>"
+            )
+            continue
+
+        # 空行
+        if not stripped:
+            i += 1
+            continue
+
+        # 独立一行的大块 HTML（如居中链接等），不做段落包装
+        if stripped.startswith('<') and re.search(r'</[a-z]+>$', stripped):
+            html_parts.append(stripped)
+            i += 1
+            continue
+
+        # 普通段落
+        html_parts.append(
+            f'<p style="margin: 15px 0; text-align: justify;">{inline_format(stripped)}</p>'
+        )
+        i += 1
+
+    flush_blockquote()
+
+    # 结尾签名
+    html_parts.append(
+        '<p style="margin: 30px 0 0; font-size: 14px; color: #999; text-align: center; '
+        'line-height: 1.8; border-top: 1px solid #eee; padding-top: 20px;">'
+        '我是宇龙，一个用 AI 搞副业的打工人。</p>'
+    )
+    html_parts.append(
+        '<p style="display: none;"><mp-style-type data-value="10000"></mp-style-type></p>'
+    )
+    html_parts.append('</section>')
+
+    return "\n".join(html_parts)
+
+
+
+
+
+
+def green_blockquote(text: str) -> str:
+    return (f'<section style="margin: 20px 0; padding: 16px 18px; background: #f0f9f4; '
+            f'border-left: 4px solid #48b378; border-radius: 8px; color: #3f3f3f; '
+            f'font-size: 15px; line-height: 1.8;">{text}</section>')
+
+
+def green_image_block(url: str, alt: str, caption: str) -> str:
+    cap = (f'<p style="margin: 8px 0 0; font-size: 13px; color: #999; text-align: center; '
+           f'line-height: 1.6;">{caption}</p>') if caption else ''
+    return (f'<section style="margin: 22px 0; text-align: center;">'
+            f'<img src="{url}" alt="{alt}" style="max-width: 100%; border-radius: 10px;"/>{cap}</section>')
+
+
+def green_separator() -> str:
+    return ('<section style="margin: 28px 0; height: 2px; '
+            'background: linear-gradient(90deg, transparent, #a7e0c0, transparent);"></section>')
+
+
+def green_h2(title: str) -> str:
+    return (f'<h2 style="margin: 34px 0 18px; font-size: 19px; font-weight: bold; color: #48b378; '
+            f'text-align: center; line-height: 1.6;">'
+            f'<span style="display:block; width:34px; height:3px; margin:0 auto 10px; '
+            f'background:#a7e0c0; border-radius:2px;"></span>'
+            f'{title}'
+            f'<span style="display:block; width:48px; height:3px; margin:10px auto 0; '
+            f'background:#48b378; border-radius:2px;"></span></h2>')
+
+
+def green_h3(title: str) -> str:
+    return (f'<h3 style="margin: 24px 0 12px; font-size: 17px; font-weight: bold; '
+            f'color: #48b378;">{title}</h3>')
+
+
+def render_markdown_to_green_html(
+    markdown_text: str,
+    image_map: dict,
+) -> str:
+    """将 Markdown 转换为萌绿主题 HTML（含 Mac 窗口代码块）。"""
+    lines = markdown_text.splitlines()
+    html_parts = [
+        '<section style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, '
+        '\'Helvetica Neue\', Arial, sans-serif; font-size: 16px; color: #333; line-height: 1.8; '
+        'padding: 20px; '
+        'background: #ffffff;">',
+    ]
+
+    part_counter = 0
+    pending_blockquote_lines: list[str] = []
+
+    def flush_blockquote():
+        nonlocal pending_blockquote_lines
+        if pending_blockquote_lines:
+            text = " ".join(pending_blockquote_lines).strip()
+            html_parts.append(green_blockquote(text))
+            pending_blockquote_lines = []
+
+    def inline_format(text: str) -> str:
+        text = re.sub(r'\*\*(.+?)\*\*', r'<strong style="font-weight: bold; color: #4a4a4a;">\1</strong>', text)
+        text = re.sub(r'\*(.+?)\*', r'<em>\1</em>', text)
+        text = re.sub(r'`(.+?)`', r'<code style="color:#28ca71;background:rgba(27,31,35,.06);padding:2px 5px;border-radius:4px;font-family:Consolas,Menlo,monospace;font-size:14px;">\1</code>', text)
+        return text
+
+    # 跳过第一行 # 标题（避免重复标题）
+    skip_first_h1 = False
+    if lines and lines[0].startswith("# ") and not lines[0].startswith("## "):
+        skip_first_h1 = True
+
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.strip()
+
+        # 跳过 HTML 注释
+        if re.match(r'^\s*<!--.*-->\s*$', line):
+            i += 1
+            continue
+
+        # 跳过第一行 H1
+        if skip_first_h1 and i == 0 and stripped.startswith("# ") and not stripped.startswith("## "):
+            skip_first_h1 = False
+            i += 1
+            continue
+
+        # 分隔符
+        if stripped in ("---", "***", "* * *"):
+            flush_blockquote()
+            html_parts.append(green_separator())
+            i += 1
+            continue
+
+        # 引用块
+        if stripped.startswith("> "):
+            pending_blockquote_lines.append(inline_format(stripped[2:]))
+            i += 1
+            continue
+        else:
+            flush_blockquote()
+
+        # H2 → 紫色标题
+        if stripped.startswith("## "):
+            part_counter += 1
+            title = inline_format(stripped[3:].strip())
+            html_parts.append(green_h2(title))
+            i += 1
+            continue
+
+        # H3
+        if stripped.startswith("### "):
+            title = inline_format(stripped[4:].strip())
+            html_parts.append(green_h3(title))
+            i += 1
+            continue
+
+        # 围栏代码块 ``` → Mac 窗口样式
+        if stripped.startswith("```"):
+            code_lines = []
+            i += 1
+            while i < len(lines) and not lines[i].strip().startswith("```"):
+                code_lines.append(lines[i])
+                i += 1
+            i += 1  # 跳过结束围栏
+            html_parts.append(mac_code_block(code_lines))
+            continue
+
+        # 图片
+        img_match = re.match(r'!\[([^\]]*)\]\(([^)]+)\)', stripped)
+        if img_match:
+            alt = img_match.group(1)
+            path = img_match.group(2)
+            basename = Path(path).name
+            img_info = image_map.get(path) or image_map.get(basename)
+            # 自动提取图注：图片后紧跟的空行+*斜体行* 作为 caption
+            caption = ""
+            if img_info:
+                caption = img_info.get("caption", "")
+            peek = i + 1
+            while peek < len(lines) and lines[peek].strip() == "":
+                peek += 1
+            if not caption and peek < len(lines):
+                cap_match = re.match(r'^\*([^*]+)\*$', lines[peek].strip())
+                if cap_match:
+                    caption = cap_match.group(1)
+                    i = peek
+            if img_info:
+                html_parts.append(green_image_block(
+                    url=img_info["url"],
+                    alt=alt if alt else img_info.get("alt", ""),
+                    caption=caption,
+                ))
+            else:
+                html_parts.append(f'<!-- ⚠️ 图片未映射: {path} -->')
+                print(f"⚠️  图片未映射: {path}")
+            i += 1
+            continue
+
+        # 无序列表
+        if stripped.startswith("- ") or stripped.startswith("* "):
+            list_items = []
+            while i < len(lines) and (lines[i].strip().startswith("- ") or lines[i].strip().startswith("* ")):
+                item = lines[i].strip()[2:]
+                list_items.append(f'<li style="margin: 0 0 8px;">{inline_format(item)}</li>')
+                i += 1
+            html_parts.append(
+                '<ul style="margin: 15px 0; padding-left: 25px;">'
+                + "".join(list_items)
+                + "</ul>"
+            )
+            continue
+
+        # 有序列表
+        if re.match(r'^\d+\. ', stripped):
+            list_items = []
+            while i < len(lines) and re.match(r'^\d+\. ', lines[i].strip()):
+                item = re.sub(r'^\d+\. ', '', lines[i].strip())
+                list_items.append(f'<li style="margin: 0 0 8px;">{inline_format(item)}</li>')
+                i += 1
+            html_parts.append(
+                '<ol style="margin: 15px 0; padding-left: 25px;">'
+                + "".join(list_items)
+                + "</ol>"
+            )
+            continue
+
+        # 空行
+        if not stripped:
+            i += 1
+            continue
+
+        # 独立一行的大块 HTML（如居中链接等），不做段落包装
+        if stripped.startswith('<') and re.search(r'</[a-z]+>$', stripped):
+            html_parts.append(stripped)
+            i += 1
+            continue
+
+        # 普通段落
+        html_parts.append(
+            f'<p style="margin: 15px 0; text-align: justify;">{inline_format(stripped)}</p>'
+        )
+        i += 1
+
+    flush_blockquote()
+
+    # 结尾签名
+    html_parts.append(
+        '<p style="margin: 30px 0 0; font-size: 14px; color: #999; text-align: center; '
+        'line-height: 1.8; border-top: 1px solid #eee; padding-top: 20px;">'
+        '我是宇龙，一个用 AI 搞副业的打工人。</p>'
+    )
+    html_parts.append(
+        '<p style="display: none;"><mp-style-type data-value="10000"></mp-style-type></p>'
+    )
+    html_parts.append('</section>')
+
+    return "\n".join(html_parts)
+
+
+
+
+
+
 def upload_video(token: str, video_path: Path, title: str = "") -> str:
     """上传视频到微信永久素材库，返回 media_id。"""
     import subprocess
@@ -753,7 +1207,7 @@ def main() -> None:
     parser.add_argument("--cover", required=True, help="封面图路径（从 --images 列表里选一个）")
     parser.add_argument("--author", default="宇龙", help="作者（默认：宇龙）")
     parser.add_argument("--digest", default="", help="文章摘要")
-    parser.add_argument("--theme", default="purple", choices=["rainbow", "purple"], help="渲染主题（当前只支持 rainbow）")
+    parser.add_argument("--theme", default="purple", choices=["rainbow", "purple", "blue", "green"], help="渲染主题：rainbow/purple(紫色渐变)/blue(萌蓝)/green(萌绿,白底居中绿标题,需正文有##小标题)")
     parser.add_argument("--env-file", default=str(DEFAULT_ENV_FILE), help="凭据文件路径")
     parser.add_argument("--video", type=str, default=None, help="视频文件路径（可选）")
     parser.add_argument("--report-file", default="push-report.json", help="报告输出路径（默认：push-report.json）")
@@ -840,6 +1294,10 @@ def main() -> None:
     print(f"\n🎨 渲染主题 HTML...")
     if args.theme == "purple":
         html = render_markdown_to_purple_html(markdown_text, image_map)
+    elif args.theme == "blue":
+        html = render_markdown_to_blue_html(markdown_text, image_map)
+    elif args.theme == "green":
+        html = render_markdown_to_green_html(markdown_text, image_map)
     else:
         html = render_markdown_to_rainbow_html(markdown_text, image_map)
     print(f"  ✅ HTML 长度: {len(html)} 字符，图片引用: {html.count('mmbiz.qpic.cn')} 张")

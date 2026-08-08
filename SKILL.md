@@ -22,8 +22,9 @@ cd /root/.openclaw/skills/wxmp-article-pipeline && python3 scripts/archive_artic
 cd /root/.openclaw/skills/wxmp-article-pipeline && python3 scripts/push_article.py --help
 node /root/.openclaw/skills/wxmp-article-pipeline/scripts/wxmp-draft-to-feishu.js /root/wxmp-studio/drafts/claude-design-2026-04-18/article.md --dry-run
 python3 /root/.openclaw/skills/wxmp-article-pipeline/scripts/wxmp_article_contract_qc.py --expected-images "a.png,b.jpg" --output /tmp/article.md
-curl -s -b /tmp/wxmp_cookie.txt -H 'content-type: application/json' -d '{"mode":"article","action":"one_pass"}' https://wxmp.meltemi.fun/api/drafts/<draft_id>/writing-prompt
+curl -s -b /tmp/wxmp_cookie.txt -H 'content-type: application/json' -d '{"mode":"article","action":"one_pass"}' https://wxmp.meltemi.vip/api/drafts/<draft_id>/writing-prompt
 /usr/local/bin/wxmp-sync mp-sync --limit 200
+python3 /root/.openclaw/skills/wxmp-article-pipeline/scripts/pull_comments.py --appmsgid 2247485899
 ```
 
 ## 短句入口（用户日常只需要这样说）
@@ -52,6 +53,7 @@ curl -s -b /tmp/wxmp_cookie.txt -H 'content-type: application/json' -d '{"mode":
 | “推草稿箱”“发公众号”“渲染文章”“发贴图/小绿书” | `wxmp-article-pipeline` | 写作、排版、上传、推草稿 |
 | “抓一下刚发的”“冻结最新发布”“把刚发布的存档一下” | `python3 /root/.openclaw/workspace/projects/wxmp-studio/scripts/review_helper.py freeze-latest` | 抓最新已发布文章 HTML/MD，并加入 review tab |
 | “查阅读量/点赞/分享/评论”“同步公众号数据”“做趋势分析” | `wxmp-sync` / `/usr/local/bin/wxmp-sync mp-sync --limit 200` | 同步后台指标到 SQLite/CSV |
+| “看看评论”“读者说了啥”“把评论拉下来”“评论区有什么反馈” | `python3 scripts/pull_comments.py --appmsgid <id>` | 拉某篇文章的**评论正文**（昵称/内容/赞数/IP属地/作者回复）|
 | “下载某个公众号文章”“搜索公众号”“扫码登录 wxdown” | `wxmp-wxdown` | wxdown 文章下载/关注列表/扫码登录 |
 | “wxmp 草稿转飞书文档”“公众号草稿转飞书”“图片图注保留” | `node scripts/wxmp-draft-to-feishu.js <draft-dir-or-md>` | 从草稿 Markdown 创建飞书 Docx，正文在前、图片和图注在后 |
 | “从草稿生成 prompt”“一键写稿”“企业服务受众”“直接成飞书” | `/api/drafts/{draft_id}/writing-prompt` | 由 wxmp 草稿生成结构化 Hermes 写作 prompt |
@@ -61,10 +63,126 @@ curl -s -b /tmp/wxmp_cookie.txt -H 'content-type: application/json' -d '{"mode":
 ## 预览口径（不要混）
 
 - wxmp-studio 草稿/待审预览：`http://127.0.0.1:8070/api/rendered/{id}`。
-- wxdown 已发布文章静态导出：`http://wxmp.meltemi.fun/uploads/<name>.html`。
+- wxdown 已发布文章静态导出：`http://wxmp.meltemi.vip/uploads/<name>.html`。
 - 推草稿前看排版，优先用 wxmp-studio 渲染预览；复盘已发布文章原貌，才用 wxdown 静态导出。
 
 ## ⚠️ 最高优先级纪律（读这两条比读别的更重要）
+
+### 🚦 防限流纪律（微信官方限流红线，2026-06 起，违反会限流）
+
+来源：微信公众平台运营中心三类限流案例，宇龙号已被点名（《惊了！GPT…》被列为「导流内容」案例）。每篇发布前必过这一闸。
+
+**① 导流（最高危，宇龙号已踩）——不要明着引导加私域**
+- ❌ 不在正文直接插微信二维码、个人微信号、"扫码加我"。
+- ❌ 不写"关注+私信『工具』送 XX 合集""备注公众号加我"这类「关注/转发换奖励」。
+- ❌ 不做"内容只发一半，关注/加群才给全部"的诱导。
+- ✅ 引导要藏暗、克制：结尾最多一句自然的"评论区聊聊/想聊的留言"，把交流留在公众号内（评论、留言），不往站外/私人号导。
+- ✅ 真要留联系方式：只在「关于/菜单/自动回复」等非正文位置，正文不碰。
+
+**② 低创作度——必须有信息增量**
+- ❌ 同质化：和自己前几篇高度雷同的结构/主题，连发会被判低创作度。换角度、换主题。
+- ❌ 纯 AIGC 直出、信息量不足的水文。
+- ✅ 每篇必须有「只有你能写」的东西：真实操作、你的判断、独到观察、踩坑、对比结论。AI 只打初稿，观点和现场感是你的。
+
+**③ 不良信息——封面/标题/正文别让人误解**
+- ❌ 标题故意隐藏关键信息、信息不完整（标题党留悬念但不能藏掉主语）。
+- ❌ 封面人物不完整、有明显水印标记、画质糊。
+- ❌ 简单拼凑、重复文字堆砌、P 图拼接误导。
+- ✅ 封面清晰完整、标题说清这篇讲什么。
+
+**④ 版权——别让文章本身涉盗版/违法**
+- 写到"下书/复制资源/破解"这类，重心放在「AI 拒绝盗版、坚持找正版」的正向结论上，不写成"教你白嫖盗版"的教程。
+- 不给可直接照做的侵权步骤、盗版站点、破解方法。
+
+发布前自检（任一条命中先改再发）：正文有没有二维码/微信号/"加我"？有没有"关注送/转发送"？标题是否藏了主语？封面是否清晰完整？这篇相对前几篇有没有新角度？有没有写成盗版/违规教程？
+
+### 🈶 语言纪律：中文为主
+
+- 所有面向用户的中间汇报、结论、`AskUserQuestion` 文案、内部 manifest 注释——**中文为主，技术术语保留英文**。
+- **禁止夹带日语 / 法语 / 韩语**等其他外语。一旦发现自己切了别的语言，立刻切回中文重写本条回复。
+- 用户上下文 / `CLAUDE.md` 是中文 = 默认中文输出。
+
+### 🔁 重推纪律：先认领正确基底（第 ⑨ 道硬闸）
+
+**任何"再推一次/再渲染一次/换封面/补一句话"之前，必须先 `draft/batchget` 同标题草稿，按 `update_time` 认领"用户最新手改版"——绝对不要拿自己上一次 push 出来的 media_id 当基底。**
+
+正确流程：
+
+```python
+# 1. 列同标题草稿
+items = draft_batchget(offset=0, count=20, no_content=0)["item"]
+same_title = [i for i in items if i["content"]["news_item"][0]["title"].rstrip("！?？!") == base_title.rstrip("！?？!")]
+same_title.sort(key=lambda i: i["update_time"], reverse=True)
+
+# 2. 跳过"我自己刚推的"——如果最近一条的 update_time 就在 push 时刻 ±60s，且内容 = 我推上去的，剔除
+# 3. 剩下最大 update_time 的那一条 = 用户最新手改版
+canonical = same_title[0]
+```
+
+历史教训：一次写稿任务里推了 v6-v8 三版，用户其实一直只在 v6（`…P3Ny`）那条手改，我每次拿自己最新推的（`…sU4R` / `…EHY8`）当基底，三轮都拿错。
+
+### 🪡 局部改动纪律：不重渲染（第 ⑩ 道硬闸）
+
+**只换封面、只改标题、只改 digest、只删/补一句话——禁止整篇过 `push_article.py` 重渲染。**
+
+重渲染会冲掉用户在草稿箱里的：emoji、`「」`、空格、表情、`➕`、自定义断行。
+
+正确做法是「复制 content + 局部替换 + draft/add」：
+
+```python
+# 1. 取用户最新版的 content HTML 原样
+art = draft_get(canonical["media_id"])["news_item"][0]
+
+# 2. 局部替换（如只换封面：仅换 thumb_media_id；如改标题：仅改 art["title"]）
+new_thumb = add_material("/path/to/new_cover.png", "image")["media_id"]
+
+# 3. draft/add 新草稿
+payload = {"articles": [{
+    "title": art["title"],
+    "author": art.get("author", "宇龙 AI"),
+    "digest": art.get("digest", ""),
+    "content": art["content"],          # ← 一字未改
+    "thumb_media_id": new_thumb,        # ← 只换这个
+    "need_open_comment": 1,
+    "only_fans_can_comment": 0,
+}]}
+draft_add(payload)  # ensure_ascii=False
+```
+
+**重推决策表**：
+
+| 改动 | 用什么 |
+|---|---|
+| 全文重写 | `push_article.py` 全渲染 |
+| 只换封面 | `draft/get` + `add_material` + `draft/add`（复制 content）|
+| 改一句 / 改标题 / 改 digest | `draft/get` + 改 HTML 局部 + `draft/add` |
+| 补一张图（图已在 mmbiz） | 直接在 content HTML 里插 `<img data-src="…">` + `draft/add` |
+| 补一张图（仅本地） | uploadimg 拿 mmbiz URL → 同上 |
+
+### 🚧 默认不删旧草稿
+
+- 推新草稿后**不主动调 `draft/delete`**。
+- 只有用户**明确说"删旧的 / 去重"**才删。
+- 用户多版本对比是常态，不要替用户清理。
+
+### 🎨 封面规则（AI 生图）
+
+- 默认从结果图里挑一张最有场景感的；不强制 AI 生图。
+- 真要 AI 生图时，规格固定：**1872×800（≈2.35:1，微信首图比例）**、居中构图（要便于方形裁剪）、**无任何文字**（微信会自动叠标题，封面带字会打架）。
+- 调用：`codex` / 本地 `chatgpt-image-2` skill / `gpt-image-2` API 都可以。
+
+### ⏱ 时间数字与"凭空场景"双禁
+
+- **精确时间数字禁**：禁止"半小时 / 15 分钟 / 7 秒 / 3 分钟 / 十秒钟 / 两小时"等带数字的时间副词，**除非用户截图/原话有依据**。AI 模型最容易在这里破防（编出"七八秒就好了""半小时搞定"这种听感很顺、但完全没依据的时间）。
+- **范围/模糊词允许**：可以写"几分钟 / 十来分钟 / 一会儿 / 没等多久 / 一杯咖啡的工夫"。读者能感受节奏，不会被打脸。
+- **凭空场景禁**：禁止凭空编"我跟朋友说" / "客户问我" / "同事看完" / "评论里有人说" 这种没发生过的对话和角色。
+- **brief 工具名优先 SKILL 默认 AI 名**：如果 brief / 用户原素材里点名 GPT / Codex / ChatGPT，不要替换成 Hermes / 爱马仕 / 小龙虾。SKILL 的"默认提到 AI 助手叫 Hermes"是缺省值，brief 给名字时 brief 赢。
+
+### 🛎 评论区互动行 + 签名规则
+
+- 评论区互动行（如「对了，你最想 X？评论区聊聊👇」）**默认位置 = 二维码之后**作收尾，不放 §6 末。
+- 签名「我是宇龙，一个用 AI 搞副业的打工人。」**只允许一条**；重推前 `assert content.count("我是宇龙") <= 1`。
+- 用户没明示要签名，就不加。
 
 ### 🧯 公众号合规边界：不写自动化创作/发布教程
 
@@ -182,6 +300,13 @@ python3 /root/.openclaw/skills/wxmp-article-pipeline/scripts/wxmp_article_contra
 
 如果 `score < 85`、`missing_body_images` 非空、`has_preface_or_process_lead=true`，或 `process_pattern_hits` 非空，不要交付，先修正文。
 
+**交付版 / 推送版必须是两个文件**（2026-07-14 固化，QC 满分实测路径）：
+
+- `article.md`（交付版，跑 QC 用）＝ 正文 + 末尾三区块：`副标题（单独发给用户，不进正文）：…`、`图文对照表：`（表格，含 note 来源列）、`待确认项：`。QC 的 `has_subtitle / has_image_mapping / has_todo` 检查的就是这三块，缺了到不了 85 分。
+- `article-push.md`（推送版，喂给 push_article.py）＝ **纯正文**，绝不含上述三区块——它们进了正文就会被渲染进公众号文章。
+- 首行 `# 标题` 两个文件都要有：QC 靠它判定非 preface；push_article.py 渲染时会跳过首行 H1，不会双标题。
+- 图注写法：`![图注](file.png)` 的下一行再补一行斜体 `*图注。*`——QC 的 `uncaptioned_body_images` 认的是斜体行，光有 alt 不算。
+
 #### 第四道硬闸：不要主动加外链、签名和硬广
 
 - 只有用户提供过的链接、`HISTORICAL-ARTICLES.md` 里的真实相关文章链接，或工具真实返回的链接，才能进入正文。
@@ -236,6 +361,30 @@ python3 /root/.openclaw/skills/wxmp-article-pipeline/scripts/wxmp_article_contra
 - 待确认项列出这些图片，让用户发布前扫一眼。
 
 更完整的写作提纯规则见 `references/hermes-minimax-output-contract.md`。
+
+#### 🙅 克制「拟人化吹捧 AI 智商」（2026-06-03 用户反馈）
+
+写 AI 体验文最容易踩的坑：**通篇夸 AI「聪明 / 脑回路厉害 / 想得真周到 / 真有条理 / 我服了 / 被它圈粉」，每一节都强行升华成「我被点醒 / 太值得学了」。**
+
+用户原话目的：这种写法 ① 肉麻、像在舔 AI，丢了作者自己的判断；② 通篇重复同一种「AI 真棒」的情绪 = **信息增量低，直接踩微信「低创作度 / 同质化堆砌」红线**；③ 真正的洞察反被密集抒情淹没。
+
+规则：
+
+- **一篇里「我被点醒 / 值得学 / 更有收获 / 真聪明 / 被圈粉」这类主观升华，最多点 1～2 次**（通常只在结尾点一次题）。其余各节只写**事实**：它做了什么、怎么判断的、给的理由是什么。
+- 砍掉空洞抒情，**用「信息增量」撑字数**（原理、步骤、它的具体判断依据、相关科普），不要用「我真服了」凑字数。
+- 保留作者真实的**口语吐槽**（如「你别说」「好嘛😅」「你厉害你仁义」「方便极了」）——这是个人味，不是吹捧；要砍的是文绉绉的「挺有条理」「值得学习」「令我感慨」这类。
+- 标题同理：别用「被它的脑回路圈了粉」这种舔机器的；用「本想让 AI 干下活，结果给我上了一课」这种**有反差、主语是「我」**的。
+- 自检：通读全文，把每段结尾那句「……所以我学到 / 真值得 / 更有收获」标出来，超过 2 处就删到只剩点题那一处。
+
+#### 🚧 防限流：导流 / 二维码 / 关注引导要藏暗（2026-06-03，微信新规）
+
+微信明确把这些列入限流：**内容导流、互动导流、诱导关注送奖励、二维码 + 文字强引导**。历史上「惊了！GPT…」那篇就因导流被点名。规则：
+
+- **正文里不要直接插微信二维码图**，不要写「关注后私信『工具』送你 XX 合集」这种「关注+奖励+暗号」三件套（这是诱导关注送奖励，明确违规）。
+- 引导要**藏暗**：结尾一句自然的话即可，如「想聊的评论区见」「这套流程我整理了，感兴趣的可以留言」，**不放二维码、不承诺送东西、不留外部联系方式**。
+- 商业合作、加微信这类，**别写进正文**；放公众号「菜单 / 自动回复 / 简介」里，那是平台允许的固定位置。
+- 评论区互动引导（「评论区聊聊」）是安全的，鼓励用。
+- 一句话：**正文只负责把内容讲透（信息增量），引导交给菜单和评论区**，别在正文里又导流又送奖励。
 
 #### 第八道硬闸：AI 味 / GPT 味必须单独过闸
 
@@ -363,10 +512,12 @@ python3 /root/.openclaw/skills/wxmp-article-pipeline/scripts/wxmp_article_contra
 #### ⑤ 写作时优先用 Yulong 的原话（语音/口语 > 模型改写）
 Yulong 给的素材里，**语音转写、口语句、自己写的草稿原文** = 第一优先级。模型只做：
 - 顺序调整（结尾前置等）
-- 错字修复
+- 错字修复（**仅限明显的语音转写错误**，如"重一些的人物"→"任务"、残留的"1."）
 - 段落切分
 
 **禁止**：把"我决定换掉龙虾"改成"决定迁移到新平台"这种**书面化重写**。
+
+**用户自创口语词/独特说法不许纠**（2026-07-14 实翻车）：把「一管周额度」"纠正"成「一整个周额度」被用户点名——"一管，就是一管子的意思，不需要非得那么严谨"。判断标准：读得通、有画面的口语表达（一管/嚯个茶/手拿把掐/罚站）一律保留原样；只有确定是转写机器听错的才修，拿不准就保留。
 
 - 4/13：「记得用我语音打字的那些内容啊，我刚才强调也说了的哈！」
 - 4/18：「'适合想让访客一眼记住那个拍风光的人这个目标'这是说的啥？不太人话啊！！」「人话这种举一反三啊」
@@ -463,6 +614,58 @@ Yulong 给的素材里，**语音转写、口语句、自己写的草稿原文**
 
 指标查询优先读取 `/root/.wxmp-sync/wxmp.sqlite` 的 `mp_publish_articles` 表，或使用 `/root/.wxmp-sync/mp_publish_metrics.csv`。如果 `auth-status` 失败，不要在 Hermes 里绕登录态；从 Mac/Win 浏览器宿主刷新后再同步。
 
+## 📣 拉评论正文（2026-07-26 打通，此前一直以为拉不到）
+
+**结论：能拉，而且是后台正规接口。**之前失败是因为**路径猜错了**——评论接口在 `/misc/appmsgcomment`，不在 `/cgi-bin/` 下面。
+
+```bash
+python3 /root/.openclaw/skills/wxmp-article-pipeline/scripts/pull_comments.py --appmsgid 2247485899
+python3 .../pull_comments.py --comment-id 4440681168547561475        # 已知 comment_id 时更快
+python3 .../pull_comments.py --appmsgid 2247485899 --json out.json   # 落盘
+python3 .../pull_comments.py --appmsgid 2247485899 --type 4          # 被屏蔽的评论
+```
+
+### 接口真相（找了很久，记下来别再走弯路）
+
+| 用途 | 接口 |
+|---|---|
+| 文章列表 → 拿 `comment_id` | `GET /misc/appmsgcomment?action=list_latest_comment&begin=0&count=20&sort_type=0&sendtype=MASSSEND` |
+| 某文章的评论 | `GET /misc/appmsgcomment?action=list_comment&comment_id=<64位id>&begin=0&count=20&filtertype=0&day=0&type=0&max_id=0` |
+
+公共参数：`token`、`lang=zh_CN`、`f=json`、`ajax=1`。请求头必须带：`Cookie`、浏览器 `User-Agent`、`X-Requested-With: XMLHttpRequest`、`Referer: https://mp.weixin.qq.com/misc/appmsgcomment?action=list_latest_comment&...&token=<token>`。
+
+### 五个坑（每个都真踩过）
+
+1. **路径**是 `/misc/appmsgcomment`，**不是** `/cgi-bin/appmsgcomment`。猜错路径时微信返回**空 body（0 字节）**、不报错，极难 debug。
+2. **`comment_id` ≠ `appmsgid`**。`comment_id` 是一篇文章的 64 位评论区 id（如 `4440681168547561475`），必须先用 `list_latest_comment` 查出来（脚本已自动做）。
+3. 参数是 **`filtertype`**（没有下划线），写成 `filter_type` 拿不到。
+4. **响应里套响应**：`comment_list` 和 `app_msg_list` 是**嵌在 JSON 里的 JSON 字符串**，要 double-parse。
+5. **登录态**用的是 wechat-article-exporter 存的那份（`/root/.openclaw/data/wxdown/kv/cookie/` 取最新 mtime）。它和 `wxmp-sync` 自己的 `mp-session.json` 原本是**两份独立凭证**（扫一次码只救活一份），现已用下面的桥接脚本打通。
+
+### 🔗 登录态桥接（2026-07-26 打通，扫一次码两边都活）
+
+```bash
+python3 /root/.openclaw/skills/wxmp-article-pipeline/scripts/sync_mp_session.py          # 同步
+python3 /root/.openclaw/skills/wxmp-article-pipeline/scripts/sync_mp_session.py --check  # 只看两份状态
+```
+
+- 做的事：取 exporter 最新那份 → **GET 一次 appmsgpublish 验真的活着** → 转成 mp-sync 的 `{token, cookie, cookie_names}` 格式写入（原文件自动备份 `.bak-<时间戳>`）。
+- **保守设计**：exporter 那份若也是死的，**不覆盖**现有文件（避免把好凭证冲掉），退出码 2。
+- **已挂 cron 自动续接**：`35 1 * * *`（在 1:40 的 `mp-sync` 前 5 分钟跑），日志 `/root/.wxmp-sync/session-bridge.log`。
+- 所以日常流程：**只需去 `wxdown.meltemi.vip` 扫一次码**，读数/评论/夜间同步全部自动恢复；两边都过期时才需再扫。
+- 排查口诀：`--check` 一把看清谁死谁活；`wxmp-sync` 报 `200003` 先跑桥接再重试同步。
+
+### 每条评论能拿到的字段
+
+`nick_name`、`content`、`like_num`、`post_time`、`is_elected`（是否精选）、`shield_status`、`ip_wording`（IP 属地）、`reply.reply_list`（作者回复）。
+另外 `total_count` 含被屏蔽的，`total_shield_count` 是屏蔽数，可见数 = 两者相减。
+
+### 为什么值得常拉（选题金矿）
+
+2026-07-26 实拉「拉群」那篇 22 条评论，直接长出三个诉求：**求教程**（最高赞之一"有什么教程吗，指导一下"）、**怕烧钱**（3 条问 token 成本）、**担心违规**（2 条提 telegram 合规）。这批诉求和阅读数据完全吻合（工具教程 258 读还在涨 vs 观点文 11 读），**写选题前先拉一遍评论，比拍脑袋准**。
+
+⚠️ 纪律：脚本**只读**（只发 GET），绝不用它发表/删除/回复评论。
+
 ## 流程总览
 
 ### 文章流程（news）
@@ -496,6 +699,9 @@ Step 4：用户确认后写全文
 Step 5：上传图片到微信
   │  正文图片 → uploadimg → mmbiz.qpic.cn URL
   │  封面图   → add_material → thumb_media_id
+  │  封面来源：默认从正文结果图里挑一张最有场景感的；
+  │           用户要求或没有合适结果图时，才用 AI 生图（如 codex cli 调 gpt-image-2）单独出一张。
+  │           不要默认每篇都生成封面，一般是「选」，不是「生」。
   ↓
 Step 6：渲染紫色主题 HTML（含小节标题、blockquote 金句、图注）
   ⚠️ **禁止跳过**：永远调用 `render_markdown_to_purple_html(md_text, image_map)`，不要裸推 HTML、不要手写 inline HTML、不要直接调 `push_draft()` 而绕过渲染。
@@ -586,6 +792,16 @@ payload = {
 - 太正式的内容
 
 ---
+
+## 🌩 图片走云端，别跟本地链路死磕（tailscale/scp 不稳时尤其有用）
+
+图片一旦上传到微信，就有 `mmbiz.qpic.cn` 公网链接，本机/任何地方都能直接 `curl` 读到（HTTP 200、完整）。所以：
+
+- **看图写图注**：图已在某篇草稿/已发布文里（有 mmbiz 链接）→ 直接 `curl` 云端读，别走 tailscale/scp。只有「用户刚上传、还没推过」的本地图才必须从源头拿。
+- **重推/换封面**：markdown 里图片已经是 `https://mmbiz.qpic.cn/...` → 应该直接透传，不重新上传。
+- **本地稿件自包含**：一篇推送成功后，把本地 `article.md` 的图片引用换成 push-report 里的 mmbiz 链接，以后重推这篇就不依赖 VPS 本地图。
+- ⚠️ 现状：`push_article.py` 还没做「mmbiz 链接透传」，仍会把 `--images` 全部重传。要彻底省掉重传，需给它加一个 pass-through：markdown 图是 mmbiz 域名就跳过上传、直接用。改完记得在 VPS 上测。
+- 复用的 mmbiz 链接必须是**本号自己**传过的；别号的 mmbiz 图在本号文章里可能不显示。
 
 ## 历史文章下载（维护已发布存档）
 
@@ -715,15 +931,24 @@ node /root/.openclaw/skills/image-recognize/scripts/recognize_images_with_gemini
 
 ## 主题与渲染（极简速查）
 
-> ⚠️ 你不需要写任何 inline HTML。push_article.py 会按 theme JSON 服务端渲染。
-> 你只管：写 markdown + 传 `--theme 紫色渐变`。下面只列**必须知道**的边界条件。
+> ⚠️ 你不需要写任何 inline HTML。渲染交给脚本。下面只列**必须知道**的边界条件。
 
-### 主题怎么选
+### 主题怎么选（⚠️ 两套主题系统，名字互不通用）
 
-- 唯一权威源：`curl -s http://127.0.0.1:8070/api/themes | jq '.[].name'`
-- **news（长文）默认**：`紫色渐变`（宇龙个人号视觉冲击+辨识度）
-- **newspic（贴图）**：不渲染主题，纯文本+图片
-- 用户没指定就用默认，不要自己换主题
+| 流程 | 主题参数 | 合法值 | 权威源 |
+|---|---|---|---|
+| `push_article.py --theme`（推公众号草稿，脚本内硬编码渲染器） | 英文名 | `rainbow` / `purple` / `blue` / `green` | 脚本 argparse choices |
+| wxmp-studio 预览 / `review_helper.py --theme`（mdnice 服务端渲染） | 中文名 | `紫色渐变`、`姹紫` 等 ~44 个 | `curl -s http://127.0.0.1:8070/api/themes \| jq '.[].name'` |
+
+- 两套名字**互不通用**：`--theme green` 只对 push_article.py 有效；`--theme 紫色渐变` 只对 mdnice 流程有效。别把中文名传给 push_article.py。
+- **news（长文）当前默认**：`green`（萌绿，2026-06-23 起宇龙主用；白底 + 居中绿标题，完整样式规范见 `references/green-theme/spec.md`）。`紫色渐变`/`purple` 是旧默认，用户点名才用。
+- **newspic（贴图）**：不渲染主题，纯文本+图片。
+- 用户没指定就用当前默认，不要自己换主题。
+
+#### 🌿 green（萌绿）两个必踩的坑（2026-07-13 实翻车固化）
+
+1. **正文必须有 `## 小标题`**：萌绿的招牌样式（居中绿标题 `#48b378` + 上下装饰线）只渲染在 `##` 上。纯段落平铺的文章渲出来**通篇无绿**、和白底普通文没区别（实录：推完用户问"不是说用绿色主题吗？那个排版！"）。写稿时至少给 3~4 个短小标题；推前先 `--dry-run`，`grep -c '#48b378' dry.html` ≥ 2 才算绿主题真生效。
+2. **重排旧文防紫色残留**：旧文 content 里的 inline `#7c3aed` 等紫色会原样透传进萌绿版，先改成 `#48b378` 或删掉（详见 spec.md）。
 
 ### 唯一允许的手写 HTML：独立链接居中
 
@@ -752,6 +977,49 @@ push_article.py 把以 `<` 开头 + `</x>` 结尾的行当 raw HTML 透传，不
 
 提到 AI 助手时叫 **Hermes / 爱马仕**（两个名字都行，看上下文），**不再用** OpenClaw / 小龙虾（4/13 已发文公开切换）。
 
+### 关注引导块规范（用户要求时才加）
+
+news 默认不加签名/引导。但用户明确要求"加二维码、关注引导、商业合作"时，按这个规范放在正文最后，标题用 `## 写在最后`（不带编号）：
+
+- 三段短话：① 一句承接正文的邀请；② 私信暗号 + 送什么；③ 商业合作 + 扫码备注。
+- 暗号和赠品名（如 `「工具」`、`《AI 提效工具 · 普通人即装即用合集》`、`商业合作`）用行内 `<span style="color:#7c3aed;font-weight:700;">…</span>` 上色强调；`inline_format` 不转义 HTML，会原样进主题 `<p>`，所以正常 Markdown 段落里直接写 span 即可，不用整行 raw HTML。
+- 赠品要写真实存在、能交付的东西（合集文档/清单），不要写空头承诺。
+- 二维码用正常 Markdown 图片 `![扫码加我，备注「公众号」](images/qr-wechat.jpg)` + 斜体图注，跟着 `--images` 一起上传。
+- 当前模板（2026-05-19 起作为规范之一）：
+
+  ```md
+  ## 写在最后
+
+  如果你也想让 AI 先替你把第一版做出来，欢迎来找我聊聊。
+
+  关注我之后，私信 <span style="color:#7c3aed;font-weight:700;">「工具」</span> 两个字，我把自己一直在用的那份 <span style="color:#7c3aed;font-weight:700;">《AI 提效工具 · 普通人即装即用合集》</span> 发你。
+
+  如果你想把 AI 用到公司里，或者有 <span style="color:#7c3aed;font-weight:700;">商业合作</span> 的想法，也可以直接扫码加我。
+
+  ![扫码加我，备注「公众号」](images/qr-wechat.jpg)
+  *扫码加我，备注「公众号」。*
+  ```
+
+### 副标题（digest）走 API，本流程自动产出
+
+副标题不是写进正文的，它是微信 `draft/add` 的 `digest` 字段，推送时单独带上。本 pipeline 已支持：
+
+- `push_article.py --digest "..."` 直接把副标题写进 `digest` 字段。
+- 副标题可由本流程根据正文自动拟一版（≤120 字），不用用户自己写。
+- 但**必须单独发一条消息给用户**让其知晓，正文里不出现（见上面铁律④）。
+- 落地到 `manifest.md` 的 `subtitle:` 字段存档。
+
+### 用户中途补图的标准处理（让用户更省心）
+
+用户经常在写稿过程中补发图片。收到补图后**不要等用户排序**，按这套自动跑：
+
+1. **识别**：用 image-recognize（Gemini）跑一遍，搞清每张图是请求截图还是结果图、属于哪个岗位/小节。
+2. **排序**：按故事线和逻辑关系排——同一件事的「请求截图 → 结果图」相邻成对；识别类的「原图 → 拆解截图」相邻；不要按用户发图的先后顺序硬排。
+3. **去重 / 合并**：用户说"这两张没区分好"时，判断是不是同一个工作的不同步骤，能合并小节就合并（如"识别图片→拆解→反推生成"算一个工作）。
+4. **落地**：存进 `materials/inbox/.../images/` 和 `drafts/.../images/`，按内容重命名（如 `2-dog-decompose.jpg`），不沿用 `微信图片_xxx` 这种名。
+5. **上传 + 更新链接表**：推送时一并上传，推完用 `push-report.json` 刷新 `cloud-links.md` 的图片链接表。
+6. **合规筛查**：补图里若含公众号 skill/后台、GitHub、VPS、维护脚本等内容，**不进正文**，在待确认项里说明原因（踩"不写公众号自动化"红线）。
+
 ### 写作中的负面表述软化
 
 | 原稿写法 | 发布版 |
@@ -779,7 +1047,7 @@ JSON 文件：`/root/.openclaw/workspace-restore/docs/wxmp-themes/mdnice/紫色�
 - [ ] **推前必数：markdown 中 `![]()` 引用数量 = mmbiz image_map 数量**（缺一不可）
 - [ ] 所有 `<img src="...">` 是 `mmbiz.qpic.cn` 域名
 - [ ] 无本地路径（`/root/.openclaw/...`）
-- [ ] 无 `src="https://meltemi.fun` / `src="http://meltemi.fun`（href 里的外部链接如游戏链接是允许的，只要不是 img src 就行）
+- [ ] 无 `src="https://meltemi.vip` / `src="http://meltemi.vip`（href 里的外部链接如游戏链接是允许的，只要不是 img src 就行）
 - [ ] 无第三方图片 URL / http 协议图片
 - [ ] 封面图已单独上传 `add_material`，有正确的 `thumb_media_id`
 - [ ] 每张正文章有对应 mmbiz URL
@@ -808,6 +1076,11 @@ JSON 文件：`/root/.openclaw/workspace-restore/docs/wxmp-themes/mdnice/紫色�
 - ❌ `这是API调用流程图`
 - ✅ `Claude Code 跑通后，终端输出 “Build successful”`
 - ✅ `Hermes 在群里自动调起机票查询，把价格和航班时间列成表`
+
+图注长度与句式（2026-07-14 用户反馈固化）：
+- **要短**：一句话、20 字上下，只说画面重点，不求把图讲全。
+- **禁止「XX：」冒号前缀式**：❌ `codexradar 上我的用量：累计 27 亿 token，7 月 13 号一天就跑了 3.3 个亿，连着用了 20 天` → ✅ `累计 27 亿 token，7 月 13 号一天就跑了 3.3 个亿`。
+- 同理 ❌ `降智雷达：今天 Sol 的…` → ✅ 直接 `Sol 的 High 和 Medium 都是 135 分`。平台名/面板名正文里说过就行，图注不用再报幕。
 
 ### □ 推送就绪检查
 - [ ] `digest`（摘要）单独发给用户，不写在文章正文里
@@ -874,6 +1147,7 @@ response = requests.post(
 | 链接没有居中+颜色 | 独立一行链接文字没有居中上色 | 用 `<center><a href="..." style="color:#7c3aed">文字 →</a></center>`，push_article.py 会做 raw HTML 处理不包 `<p>` |
 | 副标题写在文章正文里 | digest 混在文章内容里 | digest 单独发给用户，不写进文章正文 |
 | 贴图没加 article_type | 贴图被当成文章（news）处理 | payload 里必须加 `"article_type": "newspic"`，否则 draft/add 默认创建文章 |
+| 正文外链 `<a>` 整段消失 | draft/add 后链接连字带 URL 全没了 | 微信服务端会剥掉非白名单域名的 `<a>`（含内文）。外部链接用**纯文本彩色 span**：`<center><span style="color:...;word-break:break-all;">https://…</span></center>`，读者复制访问；`mp.weixin.qq.com` 域名的 `<a>` 可保留 |
 
 ---
 

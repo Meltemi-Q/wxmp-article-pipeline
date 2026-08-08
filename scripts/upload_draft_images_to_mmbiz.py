@@ -2,7 +2,7 @@
 """upload_draft_images_to_mmbiz.py — 把一个 wxmp-studio draft 的所有图片上传到 mmbiz.
 
 为什么需要这个: 腾讯公众号编辑器的后端 fetcher 对外部图片域名有信任机制,
-wxmp.meltemi.fun 这类自建域被静默 abort (2-3ms broken pipe). 所有公众号排版
+wxmp.meltemi.vip 这类自建域被静默 abort (2-3ms broken pipe). 所有公众号排版
 工具 (mdnice/秀米/墨滴) 都通过 media/uploadimg API 把图先上传到 mmbiz.qpic.cn,
 然后在 HTML 里引用 mmbiz URL. 这个脚本做同样的事, 让本地草稿图也能被编辑器
 正确识别.

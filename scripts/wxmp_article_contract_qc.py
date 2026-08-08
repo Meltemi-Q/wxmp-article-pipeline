@@ -73,13 +73,15 @@ AI_FLAVOR_PATTERNS = [
 
 HARD_SALES_PATTERNS = [
     r"我可以承接",
-    r"我是宇龙",
     r"承接企业",
     r"企业真正需要",
     r"AI 员工落地",
     r"AI 转型负责人",
     r"CRM",
 ]
+
+# 注：「我是宇龙」是用户合法 CTA 签名，单次出现不视为硬广。重复出现（≥2 次）才算 bug，走单独检查。
+SIGNATURE_TOKEN = r"我是宇龙"
 
 UNSUPPORTED_CLAIM_PATTERNS = [
     r"翘班",
@@ -90,9 +92,9 @@ UNSUPPORTED_CLAIM_PATTERNS = [
     r"GPT-?image2?.*音效",
     r"半小时",
     r"前后.*半个小时",
-    r"十来分钟",
     r"15分钟",
     r"15 分钟",
+    # 注：「十来分钟 / 几分钟 / 一会儿」是范围/模糊词，允许使用（用户 2026-05-20 明确确认）。
     r"我没急着排队",
     r"站着看了一会儿",
 ]
@@ -221,6 +223,8 @@ def score(prompt_text: str, output_text: str, article_type: str = "news") -> dic
     fake_hits = pattern_hits(FAKE_ACTION_PATTERNS, output_text)
     ai_flavor_hits = pattern_hits(AI_FLAVOR_PATTERNS, output_text)
     hard_sales_hits = pattern_hits(HARD_SALES_PATTERNS, output_text)
+    sig_count = len(re.findall(SIGNATURE_TOKEN, output_text))
+    signature_duplicate_hits = [SIGNATURE_TOKEN] * max(0, sig_count - 1)
     unsupported_claim_hits = pattern_hits(UNSUPPORTED_CLAIM_PATTERNS, output_text)
     title_overclaim_hits = pattern_hits(TITLE_OVERCLAIM_PATTERNS, output_text)
     weak_summary_hits = pattern_hits(WEAK_SUMMARY_PATTERNS, output_text)
@@ -242,6 +246,7 @@ def score(prompt_text: str, output_text: str, article_type: str = "news") -> dic
     points -= min(15, len(fake_hits) * 10)
     points -= min(24, len(ai_flavor_hits) * 4)
     points -= min(18, len(hard_sales_hits) * 6)
+    points -= min(16, len(signature_duplicate_hits) * 8)
     points -= min(24, len(unsupported_claim_hits) * 6)
     points -= min(18, len(title_overclaim_hits) * 6)
     points -= min(18, len(weak_summary_hits) * 4)
@@ -274,6 +279,8 @@ def score(prompt_text: str, output_text: str, article_type: str = "news") -> dic
         "fake_action_hits": fake_hits,
         "ai_flavor_hits": ai_flavor_hits,
         "hard_sales_hits": hard_sales_hits,
+        "signature_count": sig_count,
+        "signature_duplicate_hits": signature_duplicate_hits,
         "unsupported_claim_hits": unsupported_claim_hits,
         "title_overclaim_hits": title_overclaim_hits,
         "weak_summary_hits": weak_summary_hits,
