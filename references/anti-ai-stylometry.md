@@ -77,7 +77,7 @@ python3 scripts/wxmp_article_contract_qc.py --expected-images ... --output artic
 
 只有图、没有口述稿
   → 按 story-grammar：先出原话表（截图气泡）+ 同类型发布版当骨架 + 禁解说腔
-  → QC stylometry 全过；朱雀尚未按此路径复测
+  → QC stylometry 全过；8/16 v5 按此路径朱雀=显著，下一篇复测确认
   → 原话表几乎为空时，交付标注「建议发布前快速手改一遍」
   → 用户随手改的内容会被 compare_publish_edits.py 学走，反哺规则
 ```
