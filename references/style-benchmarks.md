@@ -13,7 +13,7 @@
 
 ## 使用规则
 
-- 写稿读取顺序：`persona_style.md`（口吻）→ `personal-voice-rules.md` v4（手改账本）→ `golden-samples.md`（自己的发布版 1~2 篇）→ 本表（可选，最多 1 篇）。
+- 写稿读取顺序：`voice_fewshot.py`（本篇相关原句）→ `persona_style.md`（摘要）→ `personal-voice-rules.md` v5（四套味道+手改账本）→ `golden-samples.md`（自己的发布版 1~2 篇）→ 本表（可选，最多 1 篇）。
 - 外部样本只在「本篇类型缺自己样本」或「用户点名照着某篇写」时才读。
 - 学完自检：如果读者能看出「这篇在模仿谁」，就是学过头了，重写。
 
