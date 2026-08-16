@@ -42,7 +42,7 @@ python3 scripts/wxmp_article_contract_qc.py --expected-images ... --output artic
 ## 朱雀检测（matrix.tencent.com/ai-detect）
 
 - 免登录每天 5 次，额度跟浏览器 `fp` 走，不只是 `localStorage.aiGenTxtRemainingCount`。旧指纹会回 `limited`；换新 `fp` 并重连 `wss://matrix.tencent.com/ai_gen_txt_server/getClassify` 可再拿 5 次。
-- 界面四档：人工创作特征显著 / 较强 / 较弱 / **未发现明显的人工创作特征**。底层是连续分：`labels_ratio[0]` 是人工、`[2]` 是 AI，`confidence`≈AI 分。同文本复测同档。
+- 界面四档：人工创作特征显著 / 较强 / 较弱 / **未发现明显的人工创作特征**。底层是连续分：`labels_ratio[0]` 是人工、`[2]` 是 AI，`confidence`≈AI 分。**同文本复测同档同分**（换浏览器 `fp` 也一样，分数钉死到小数点后 4 位）。
 - **一条命令检测**：`scripts/zhuque_check.sh <正文纯文本.txt>`。偶发图片/滑块验证码会截图退出。不要一上来 `localStorage.clear()`，刚过的验证票据会丢。
 - 本机真 Chrome 能过验证码并出结果；tx 无头过完选图后常回 `Invalid request`，不要把无头失败当成正文不合格。
 - 交互口（本机/tx 调试）：`scripts/zhuque_session.py` 听 `127.0.0.1:8766`，`/reset /fill /submit /shot.png /click /confirm /poll`。
@@ -104,20 +104,21 @@ python3 scripts/wxmp_article_contract_qc.py --expected-images ... --output artic
 
 8/16 v5 已按此路径复测，结果「显著」。下一篇继续走同一生产方法，测完回写。
 
-### 历史长文连测（2026-08-16 夜，本机真 Chrome + 新 fp）
+### 历史长文连测 + 复测（2026-08-16/17，本机真 Chrome）
 
-从已发布 HTML/存档抽纯文本实测。读结果只看 `.el-alert` / `.rst`，并核对 WebSocket `confidence` / `labels_ratio`。
+从已发布 HTML/存档抽纯文本实测。读结果只看 `.el-alert` / `.rst`，并核对 WebSocket `confidence` / `labels_ratio`。第一轮 fp `f80f935a…`，复测换新 fp `53a25f43…`，分数仍钉死。
 
-| 文章 | 档位 | confidence | 人工比 label0 | 备注 |
-|---|---|---|---|---|
-| 8/15 发布版（`published.html` 抽纯文本） | 较弱 | 0.5771 | 0.42 | 与当日消融「发布版=显著」不一致，见下 |
-| 8/10 手机遥控 DeepSeek 做 PPT | 未发现明显的人工创作特征 | 1.0 | 0.00 | 教程复盘腔最重 |
-| 8/8 Reasonix 装 DeepSeek | **显著** | 0.3403 | 0.66 | 「吭哧吭哧 / 挺牛的」这类口语在 |
-| 7/14 GPT/Codex 额度 | **显著** | 0.00 | 1.00 | 最像随口说，雷达/重置卡 |
-| 7/22 workbuddy 做网站 | 未出 | — | — | 最后一次额度卡在滑块 |
+| 文章 | 次数 | 档位 | confidence | label0 | 是否同分 |
+|---|---|---|---|---|---|
+| 7/14 GPT/Codex 额度 | 2 | **显著** | 0.00 | 1.00 | 完全一致 |
+| 8/8 Reasonix 装 DeepSeek | 2 | **显著** | 0.3403 | 0.6597 | 完全一致 |
+| 7/22 workbuddy 做网站 | 2 | **显著** | 0.00 | 1.00 | 完全一致 |
+| 8/15 发布版（`published.html` 抽干） | **3** | 较弱 | 0.5771 | 0.4229 | 完全一致 |
+| 8/10 手机遥控 DeepSeek 做 PPT | 2 | 未发现明显的人工创作特征 | 1.0 | 0.00 | 完全一致（label1=0.2035 / label2=0.7965 也钉死） |
 
 补充：
 
-1. **抽文本 ≠ 当时送进朱雀的发布版**。8/15 消融是对着页面/手改稿测的「显著」；本轮 `published.html` 抽干后变「较弱」。图注、换行、微信排版抽掉会掉分，不要用抽干文本去否定当日消融。
-2. **口语密度仍是主轴**：7/14、8/8 口述腔重 → 显著；8/10 教程复盘 → 第四档。和消融「原话密度决定起点」一致。
+1. **抽文本 ≠ 当时送进朱雀的发布版**。8/15 消融是对着页面/手改稿测的「显著」；`published.html` 抽干后三次都是「较弱」同分。图注、换行、微信排版抽掉会掉分，不要用抽干文本去否定当日消融。
+2. **口语密度仍是主轴**：7/14、7/22、8/8 口述腔重 → 显著；8/10 教程复盘 → 第四档。和消融「原话密度决定起点」一致。
 3. 过检时按微信将发出去的正文测，不要用去图注、去换行的存档纯文本当对照。
+4. **复测结论**：朱雀对同一段纯文本是确定性打分，不是抽样抖动。同一篇测两遍、三遍，档位和小数都不会漂。测一次够用；复测只为确认文本没贴错。
