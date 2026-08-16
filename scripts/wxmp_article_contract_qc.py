@@ -142,6 +142,52 @@ def uncaptioned_body_images(output_text: str) -> list[str]:
     return missing
 
 
+DELIVERY_MARKERS = ("副标题（单独发给用户", "图文对照表：", "待确认项：", "图文对照 / 图片顺序表")
+
+
+def body_lines(output_text: str) -> list[str]:
+    """正文行（交付区三块之前）。"""
+    out = []
+    for line in output_text.splitlines():
+        s = line.strip()
+        if any(s.startswith(mk) for mk in DELIVERY_MARKERS):
+            break
+        out.append(s)
+    return out
+
+
+def caption_trailing_period_hits(output_text: str) -> list[str]:
+    """图注（图片下一行斜体）以句号结尾 = 命中。2026-08-15 发布手改固化：图注不带句尾标点。"""
+    lines = body_lines(output_text)
+    hits = []
+    for idx, line in enumerate(lines):
+        if not re.match(r"!\[[^\]]*\]\([^)]+\)\s*$", line):
+            continue
+        nxt = lines[idx + 1] if idx + 1 < len(lines) else ""
+        m = re.match(r"^\*([^*]+)\*\s*$", nxt)
+        if m and m.group(1).rstrip().endswith(("。", ".")):
+            hits.append(m.group(1).strip()[:40])
+    return hits
+
+
+def paragraph_trailing_period_hits(output_text: str) -> list[str]:
+    """正文段落行尾带「。」= 命中。2026-08-15 发布手改固化：段尾句号省略，段中句号保留，？！保留。"""
+    hits = []
+    in_code = False
+    for line in body_lines(output_text):
+        if line.startswith("```"):
+            in_code = not in_code
+            continue
+        if in_code or not line:
+            continue
+        if line.startswith(("#", "|", "!", "<", "-", "*")):
+            continue
+        text = line[2:].strip() if line.startswith("> ") else line
+        if text.endswith("。"):
+            hits.append(text[:40])
+    return hits
+
+
 def loose_part_headings(output_text: str) -> list[str]:
     out = []
     for line in output_text.splitlines():
@@ -229,6 +275,8 @@ def score(prompt_text: str, output_text: str, article_type: str = "news") -> dic
     title_overclaim_hits = pattern_hits(TITLE_OVERCLAIM_PATTERNS, output_text)
     weak_summary_hits = pattern_hits(WEAK_SUMMARY_PATTERNS, output_text)
     newspic_forbidden_hits = pattern_hits(NEWSPIC_FORBIDDEN_PATTERNS, output_text) if article_type == "newspic" else []
+    caption_period_hits = caption_trailing_period_hits(output_text)
+    para_period_hits = paragraph_trailing_period_hits(output_text)
     uncaptioned = uncaptioned_body_images(output_text)
     loose_parts = loose_part_headings(output_text)
     part_hits = part_token_hits(output_text)
@@ -266,6 +314,8 @@ def score(prompt_text: str, output_text: str, article_type: str = "news") -> dic
     if "PART " in output_text and not re.search(r"(?m)^#{1,3}\s*(?:\d+\s*)?PART\s+\d+", output_text):
         points -= 8
     points -= min(24, len(newspic_forbidden_hits) * 8)
+    points -= min(8, len(caption_period_hits) * 2)
+    points -= min(8, len(para_period_hits) * 1)
 
     return {
         "score": max(points, 0),
@@ -286,6 +336,8 @@ def score(prompt_text: str, output_text: str, article_type: str = "news") -> dic
         "weak_summary_hits": weak_summary_hits,
         "meta_first_heading_hits": meta_heading_hits,
         "newspic_forbidden_hits": newspic_forbidden_hits,
+        "caption_trailing_period_hits": caption_period_hits,
+        "paragraph_trailing_period_hits": para_period_hits,
         "uncaptioned_body_images": uncaptioned,
         "loose_part_headings": loose_parts,
         "part_token_hits": part_hits,

@@ -46,6 +46,24 @@ python3 /root/.openclaw/skills/wxmp-article-pipeline/scripts/pull_comments.py --
 - 用户说“贴图/小绿书/图片帖”必须用 `--mode newspic`；用户说“文章/公众号文章”默认用 `--mode article`。
 - QC 不过不要推送；先自修或只给失败项。
 
+### 传图成稿（photo-to-draft，2026-08-16 定型）
+
+触发词：「图发你了，直接出稿」「按这些图写一篇」「只有图，你先写个大概」，或用户只发一批截图/一个图多字少的飞书 wiki。目标：用户忙不过来时，只传图也能拿到「稍微调一下就能发」的稿子。
+
+流程（顺序固定）：
+
+1. **落地**：图先进 `materials/inbox/`（素材落地规则），再复制进草稿目录。
+2. **识图排序**：逐张识图（image-recognize / vision），按故事线排：现场 → 卡住 → 结果。聊天截图里用户自己打的字优先当正文原话用。
+3. **风格三层 + 外部参考**（读取顺序固定）：
+   - `~/Documents/WeChatArchive/corpus/persona_style.md`（4 万条语料口吻档案，本机有就必读）
+   - `references/personal-voice-rules.md` v4（发布手改账本：段尾/图注无句号、语气词、小节标题带情绪）
+   - `references/golden-samples.md` 挑同类型发布版 1~2 篇通读（发布版 > 推送版 > AI 稿）
+   - `references/style-benchmarks.md`（可选，最多 1 篇，仅当用户点名或自己样本缺该类型）
+4. **写全文**：按 `一句现场 → prompt/截图 → 一句判断`，图默认全用，图注自动补（第七道硬闸），note 来源标「自动图注」。
+5. **不编事实**：价格、时间、套餐名、数字拿不准就进「待确认项」，宁可空着让用户扫一眼。
+6. **QC + 交付**：正常跑 QC（含标点两项新检查）；默认 `write_only` 先给用户看，用户明说「直接推」才推草稿箱。
+7. **发布后闭环**：用户发布后跑 `compare_publish_edits.py`，手改规律回写 v4 + 新发布版进 golden-samples。每发一篇，下一篇首稿就更像。
+
 ## 触发词路由（先分流，再执行）
 
 | 用户怎么说 | 用哪个 skill / 命令 | 目的 |
@@ -212,14 +230,14 @@ draft_add(payload)  # ensure_ascii=False
 - 不要写成技术教程。
 - 不要展开 VPS、GitHub、repo、CI、PR、接口、cookie、token。
 - 把能力翻译成业务人能看懂的话：选图、整理表格、客户跟进、会议待办、做一个能看的页面。
-- 标题优先短句，不超过 12 个字更好。
+- 标题要短，但必须一遍读懂；先看 `references/title-formulas.md`。贴图 ≤ 20 字也不能把场景藏没。
 - 小节编号用 `1 标题`、`2 标题`，不要用零开头编号、英文分段标签、模板式分段词。
 
 写作前不要只套 skill 规则，还要做三件事：
 
 1. 看历史指标：阅读、分享、点赞、评论、互动率，找相似爆款结构。
-2. 看用户语料：从 Obsidian / 历史聊天里提炼本篇相关口吻，只提炼表达方式，不搬隐私事实。
-3. 看本篇素材：prompt、截图、结果文件、用户最新修正必须优先于旧模板。
+2. 看用户语料：从 Obsidian / 历史聊天里提炼本篇相关口吻，只提炼表达方式，不搬隐私事实。本机若有 `~/Documents/WeChatArchive/corpus/persona_style.md`，先读；有「发布版 vs 推送前草稿」就对照手改，别只看 AI 长稿。
+3. 看本篇素材：prompt、截图、结果文件、用户最新修正必须优先于旧模板。飞书/口述稿优先照搬原话，只做切段和配图。
 
 对应参考：
 
@@ -353,7 +371,9 @@ python3 /root/.openclaw/skills/wxmp-article-pipeline/scripts/wxmp_article_contra
 
 #### 第七道硬闸：图片没 note 时自动补图注
 
-用户没给图片文字时，不要停住，也不要瞎删图：
+**贴图 `newspic` 跳过本闸**，不配图注。
+
+长文没给图片文字时，不要停住，也不要瞎删图：
 
 - 先用 vision/图片查看能力识别图片内容。
 - 自动生成一句“小字居中图注”。
@@ -575,9 +595,10 @@ Yulong 给的素材里，**语音转写、口语句、自己写的草稿原文**
 
 贴图任务的写作输出也要先锁死：
 
-- 标题 ≤ 20 个中文字符。
-- 正文是短句，不要英文分段标签式长文结构。
+- 标题 ≤ 20 个中文字符，且**一遍读懂**：谁 + 干什么 + 结果。短到读者问「啥意思」就重写。细则见 `references/title-formulas.md`。
+- 正文是短句，不要英文分段标签式长文结构。宜 **250-400 字**，图上有几块就落到几句，别只甩一个钩子。
 - 不写副标题 digest。
+- **不配图注。** 贴图就是图 + 短句，不要在图下再跟一行小字。第七道硬闸的自动图注对贴图无效。
 - 不走紫色主题 HTML 长文渲染。
 - 最终交付为：贴图标题、贴图正文、图片顺序表、待确认项。
 - 贴图 QC 必须使用 `--article-type newspic`，且 `newspic_forbidden_hits` 为空。
@@ -771,9 +792,10 @@ payload = {
 
 | 要点 | 怎么做 | 反例 |
 |---|---|---|
-| 标题 | ≤ 20 中文字 + 反差/惊喜 | "DeepSeekV4出了！我接进Hermes生成了视频" ✅ |
-| 开头 | 1-3 行画面钩子 | "DeepSeek大家都期待了好久了" ✅ |
-| 长度 | 150-400 字 | 03 那篇 150 字也可以发，不强求长 |
+| 标题 | ≤ 20 中文字，一遍读懂，有反差 | "让AI学我说话，回微信才8个字" ✅ / "AI写得太长，我自己才8个字" ❌ |
+| 开头 | 1-3 行画面钩子，不重复标题 | "DeepSeek大家都期待了好久了" ✅ |
+| 长度 | 250-400 字 | 只甩三句钩子、图对不上 ❌ |
+| 图注 | **不配** | 图下再跟一行小字 ❌ |
 | 签名 | **禁止加**"我是宇龙..." | newspic 不需要 |
 | AI 助手 | 直接叫 Hermes / 爱马仕 | 别叫 OpenClaw |
 | 紫色主题 | **不渲染** | newspic 是纯文本，加 inline style 会被 API 拒 |
@@ -1081,6 +1103,7 @@ JSON 文件：`/root/.openclaw/workspace-restore/docs/wxmp-themes/mdnice/紫色�
 - **要短**：一句话、20 字上下，只说画面重点，不求把图讲全。
 - **禁止「XX：」冒号前缀式**：❌ `codexradar 上我的用量：累计 27 亿 token，7 月 13 号一天就跑了 3.3 个亿，连着用了 20 天` → ✅ `累计 27 亿 token，7 月 13 号一天就跑了 3.3 个亿`。
 - 同理 ❌ `降智雷达：今天 Sol 的…` → ✅ 直接 `Sol 的 High 和 Medium 都是 135 分`。平台名/面板名正文里说过就行，图注不用再报幕。
+- **句尾不带「。」**（2026-08-15 发布手改固化）：❌ `…有套餐就能直接登。` → ✅ `…有套餐就能直接登`。正文段尾句号同样省略（段中句号保留，？！保留），QC 的 `caption_trailing_period_hits` / `paragraph_trailing_period_hits` 非空不交付。详见 `references/personal-voice-rules.md` v4。
 
 ### □ 推送就绪检查
 - [ ] `digest`（摘要）单独发给用户，不写在文章正文里
@@ -1232,6 +1255,28 @@ python3 scripts/diff_articles.py "2026-04-09-完整文件夹名"  # 精确匹配
 - 两版前100字预览
 
 用于：检查发布后实际改了什么，评估改稿效果。
+
+### 手改规律提炼（compare_publish_edits.py，2026-08-15 起）
+
+发布后想总结「用户到底改了啥」，用这个（比 diff_articles.py 细，按类型归类）：
+
+```bash
+# 单篇：存档目录里要有 content.md（推送前稿）+ published.html（发布版）
+python3 scripts/compare_publish_edits.py --archive-dir references/archives/published/<目录> --max-print 60
+
+# 批量 + 汇总统计
+python3 scripts/compare_publish_edits.py --all --json /tmp/publish-edits.json
+
+# 三层对比（口述稿 → 推送版 → 发布版）
+python3 scripts/compare_publish_edits.py --archive-dir <目录> --user-draft <口述稿.md>
+```
+
+改动分类：`punct_only`（纯标点）/ `split`（拆段）/ `tweak`（用词微调）/ `rewrite` / `added` / `removed`，外加图注句号统计和标题变更。
+
+纪律：
+- **每次发布后跑一遍**，把新规律补进 `references/personal-voice-rules.md`（v4 起是手改账本）。
+- 发布版抓取：`archive_articles.py --latest` 正常时自动有；wxdown 失败时可 curl 公开链接存成 `published.html`（脚本能解微信的 `\x3c` JS 转义）。
+- 2026-06 之前的老存档 content.md 是 pandoc 净化产物，格式噪音大（`------`/`\"`/加粗符号），批量统计只采信 2026-06-23 之后的对子。
 
 ---
 
