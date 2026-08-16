@@ -59,10 +59,11 @@ python3 /root/.openclaw/skills/wxmp-article-pipeline/scripts/pull_comments.py --
    - `references/personal-voice-rules.md` v4（发布手改账本：段尾/图注无句号、语气词、小节标题带情绪）
    - `references/golden-samples.md` 挑同类型发布版 1~2 篇通读（发布版 > 推送版 > AI 稿）
    - `references/style-benchmarks.md`（可选，最多 1 篇，仅当用户点名或自己样本缺该类型）
-4. **写全文**：按 `一句现场 → prompt/截图 → 一句判断`，图默认全用，图注自动补（第七道硬闸），note 来源标「自动图注」。
+4. **写全文**：按 `一句现场 → prompt/截图 → 一句判断`，图默认全用，图注自动补（第七道硬闸），note 来源标「自动图注」。**用户口述/截图里用户打的字 = 正文骨架，原样织入**——原话密度决定朱雀检测起点分（见 `references/anti-ai-stylometry.md` 消融实验）。
 5. **不编事实**：价格、时间、套餐名、数字拿不准就进「待确认项」，宁可空着让用户扫一眼。
-6. **QC + 交付**：正常跑 QC（含标点两项新检查）；默认 `write_only` 先给用户看，用户明说「直接推」才推草稿箱。
+6. **QC + 过检 + 交付**：跑 QC（含 stylometry）；可选 `scripts/zhuque_check.sh` 测档位——有口述稿底子的预期「显著/较强」，纯图织稿的预期「较弱」属正常，交付时标注「建议发布前快速手改一遍」。默认 `write_only` 先给用户看，用户明说「直接推」才推草稿箱。
 7. **发布后闭环**：用户发布后跑 `compare_publish_edits.py`，手改规律回写 v4 + 新发布版进 golden-samples。每发一篇，下一篇首稿就更像。
+8. **想直接过检就找用户要一段口述**：哪怕两三百字语音转写，当正文骨架，比磨 AI 十轮都管用。
 
 ## 触发词路由（先分流，再执行）
 
