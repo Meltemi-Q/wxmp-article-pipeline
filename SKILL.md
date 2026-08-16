@@ -55,8 +55,9 @@ python3 /root/.openclaw/skills/wxmp-article-pipeline/scripts/pull_comments.py --
 1. **落地**：图先进 `materials/inbox/`（素材落地规则），再复制进草稿目录。
 2. **识图 + 先出原话表**：逐张识图，按五拍排（现场 → 卡住 → 我来 → 意外 → 再试）。**先列出每张图里用户自己打的字**，写进 `manifest.md`，再动笔。表是空的，稿就是空的。详见 `references/story-grammar.md`。
 3. **风格三层 + 骨架样本**（读取顺序固定）：
-   - `~/Documents/WeChatArchive/corpus/persona_style.md`（4 万条语料口吻档案，本机有就必读）
-   - `references/personal-voice-rules.md` v4（发布手改账本：段尾/图注无句号、语气词、小节标题带情绪）
+   - **先捞原句**：`python3 scripts/voice_fewshot.py --query "<本篇主题>" --n 8`（朋友圈 830 条 + 社群答疑 + 历史公众号；本机没有语料则 SKIP）
+   - `~/Documents/WeChatArchive/corpus/persona_style.md`（口吻档案，摘要不够当 few-shot）
+   - `references/personal-voice-rules.md` v5（四套味道 + 发布手改账本）
    - `references/story-grammar.md`（先分流长文/短评，长文套五拍，禁止解说腔）
    - `references/golden-samples.md` 挑**同类型**发布版 1 篇当骨架（段数/拍序/引号位置；发布版 > 推送版 > AI 稿）
    - `references/style-benchmarks.md`（可选，最多 1 篇，仅当用户点名或自己样本缺该类型）
@@ -238,7 +239,7 @@ draft_add(payload)  # ensure_ascii=False
 写作前不要只套 skill 规则，还要做三件事：
 
 1. 看历史指标：阅读、分享、点赞、评论、互动率，找相似爆款结构。
-2. 看用户语料：从 Obsidian / 历史聊天里提炼本篇相关口吻，只提炼表达方式，不搬隐私事实。本机若有 `~/Documents/WeChatArchive/corpus/persona_style.md`，先读；有「发布版 vs 推送前草稿」就对照手改，别只看 AI 长稿。
+2. 看用户语料：本机先跑 `python3 scripts/voice_fewshot.py --query "<本篇主题>" --n 8`，从朋友圈/社群/历史公众号捞跟本篇相关的原句。只学句式，不搬隐私事实。`persona_style.md` 是摘要，不能代替检索。有「发布版 vs 推送前草稿」就对照手改，别只看 AI 长稿。
 3. 看本篇素材：prompt、截图、结果文件、用户最新修正必须优先于旧模板。飞书/口述稿优先照搬原话，只做切段和配图。
 
 对应参考：
