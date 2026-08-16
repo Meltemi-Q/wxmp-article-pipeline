@@ -47,10 +47,25 @@ def detect_text(text: str) -> str:
         raise SystemExit("FAIL: 文本需 >350 字")
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(
-            headless=True,
-            args=["--disable-dev-shm-usage", "--no-sandbox"],
-        )
+        args = ["--disable-dev-shm-usage", "--no-sandbox"]
+        try:
+            browser = p.chromium.launch(headless=True, args=args)
+        except Exception:
+            browser = None
+            for cand in (
+                Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"),
+                Path.home() / "Library/Caches/ms-playwright/chromium-1169/chrome-mac/Chromium.app/Contents/MacOS/Chromium",
+                Path.home() / "Library/Caches/ms-playwright/chromium-1208/chrome-mac/Chromium.app/Contents/MacOS/Chromium",
+                Path("/root/.cache/ms-playwright/chromium-1208/chrome-linux64/chrome"),
+                Path.home() / ".cache/ms-playwright/chromium-1208/chrome-linux64/chrome",
+            ):
+                if cand.exists():
+                    browser = p.chromium.launch(
+                        headless=True, args=args, executable_path=str(cand)
+                    )
+                    break
+            if browser is None:
+                raise SystemExit("FAIL: 找不到 Playwright Chromium")
         page = browser.new_page(locale="zh-CN", viewport={"width": 1280, "height": 900})
         page.goto(URL, wait_until="domcontentloaded", timeout=30000)
         page.evaluate(
