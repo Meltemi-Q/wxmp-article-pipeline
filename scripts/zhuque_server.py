@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
-"""本机朱雀检测口。VPS 没有国内浏览器，检测只在这台能打开 matrix.tencent.com 的机器上跑。
+"""朱雀检测口。默认绑 127.0.0.1:8765，只给 SSH 隧道用，不要对公网开放。
 
-用法（本机）:
-  python3 scripts/zhuque_server.py          # 127.0.0.1:8765
-  python3 scripts/zhuque_server.py --bind 0.0.0.0 --port 8765
-
-VPS 要自动测，先从本机打一条反向隧道，再设环境变量:
-  ssh -N -R 8765:127.0.0.1:8765 vps
-  # 在 VPS:
-  ZHUQUE_URL=http://127.0.0.1:8765/detect scripts/zhuque_check.sh /tmp/plain.txt
+固定拓扑:
+  tx  (能开 matrix.tencent.com) 跑本进程 + Playwright
+  vps (美国，写稿/推草稿) 打本地转发:
+      ssh -N -L 127.0.0.1:8765:127.0.0.1:8765 tx
+  公网 22 不通，Host tx 必须走 Tailscale（100.102.105.22）
 
 POST /detect
   body: 纯文本，或 JSON {"text": "..."}
@@ -18,14 +15,14 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import subprocess
+import sys
 import tempfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-CHECK = HERE / "zhuque_check.sh"
+DETECT = HERE / "zhuque_detect.py"
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -57,14 +54,11 @@ class Handler(BaseHTTPRequestHandler):
         with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".txt", delete=False) as f:
             f.write(text)
             path = f.name
-        env = os.environ.copy()
-        env.pop("ZHUQUE_URL", None)
         try:
             proc = subprocess.run(
-                ["bash", str(CHECK), path],
+                [sys.executable, str(DETECT), path],
                 capture_output=True,
                 text=True,
-                env=env,
                 timeout=180,
             )
         except subprocess.TimeoutExpired:

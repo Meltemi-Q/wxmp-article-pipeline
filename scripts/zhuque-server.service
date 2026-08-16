@@ -1,0 +1,16 @@
+[Unit]
+Description=Zhuque AI detect HTTP server (127.0.0.1:8765)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/ubuntu/zhuque
+ExecStart=/usr/bin/python3 /home/ubuntu/zhuque/zhuque_server.py --bind 127.0.0.1 --port 8765
+Restart=always
+RestartSec=3
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

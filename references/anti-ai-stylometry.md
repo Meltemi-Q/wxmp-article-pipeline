@@ -42,12 +42,15 @@ python3 scripts/wxmp_article_contract_qc.py --expected-images ... --output artic
 ## 朱雀检测（matrix.tencent.com/ai-detect）
 
 - 免登录每天 5 次；结果三档：人工创作特征显著 / 较强 / 较弱。判定**稳定**（同文本复测同档）。
-- **一条命令检测**：`scripts/zhuque_check.sh <正文纯文本.txt>`（本机 ego-browser 驱动，自动清站点存储重置额度，同 IP 无限测；偶发图片验证码会截图退出，人工/agent 点掉重跑）。
-- **VPS 不要硬跑浏览器**。美国 IP 打不开 matrix.tencent.com，也没有本机这套 ego-browser。正确分法：
+- **一条命令检测**：`scripts/zhuque_check.sh <正文纯文本.txt>`。自动清站点存储重置额度；偶发图片验证码会截图退出。
+- **固定拓扑（VPS → tx 隧道，不要反向打到 Mac）**：
   - 写稿 / 推草稿：继续在 VPS
-  - 朱雀：只在能打开腾讯的本机跑
-  - 要自动化：本机 `python3 scripts/zhuque_server.py`，再 `ssh -N -R 8765:127.0.0.1:8765 vps`，VPS 设 `ZHUQUE_URL=http://127.0.0.1:8765/detect` 后照常跑 `zhuque_check.sh`
-  - 没隧道时脚本会 `SKIP`（exit 10），写稿继续，过检留到本机
+  - 朱雀浏览器：只在 tx（腾讯云，能开 `matrix.tencent.com`）跑 Playwright
+  - tx：`python3 scripts/zhuque_server.py`（systemd `zhuque-server.service`，只绑 `127.0.0.1:8765`）
+  - VPS：`ssh -N -L 127.0.0.1:8765:127.0.0.1:8765 tx`（systemd `zhuque-tunnel-vps-to-tx.service`）
+  - 公网 22 不通，`Host tx` 必须走 Tailscale `100.102.105.22`，不要用 `122.51.1.233`
+  - `zhuque_check.sh` 发现本机 `8765/health` 通就自动 POST，不用再设 `ZHUQUE_URL`
+  - 没隧道时 `SKIP`（exit 10），写稿继续
 - 标点是口吻的一部分（段尾句号混合、图注无句号），写的时候就按发布版写，不是测完再补。测完只复盘，回写规则。
 
 ### 消融实验结论（2026-08-16，同一篇文章五个版本）

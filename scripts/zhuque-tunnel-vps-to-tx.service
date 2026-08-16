@@ -1,0 +1,13 @@
+[Unit]
+Description=SSH local forward VPS:8765 -> tx:8765 (Zhuque)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/ssh -i /root/.ssh/id_ed25519 -N -L 127.0.0.1:8765:127.0.0.1:8765 -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new ubuntu@100.102.105.22
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
