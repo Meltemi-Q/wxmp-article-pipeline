@@ -46,11 +46,12 @@ python3 scripts/wxmp_article_contract_qc.py --expected-images ... --output artic
 - **固定拓扑（VPS → tx 隧道，不要反向打到 Mac）**：
   - 写稿 / 推草稿：继续在 VPS
   - 朱雀浏览器：只在 tx（腾讯云，能开 `matrix.tencent.com`）跑 Playwright
-  - tx：`python3 scripts/zhuque_server.py`（systemd `zhuque-server.service`，只绑 `127.0.0.1:8765`）
+  - tx：`python3 scripts/zhuque_server.py`（systemd `zhuque-server.service`，只绑 `127.0.0.1:8765`；Playwright Chromium 已装在 root/ubuntu 的 `~/.cache/ms-playwright/`）
   - VPS：`ssh -N -L 127.0.0.1:8765:127.0.0.1:8765 tx`（systemd `zhuque-tunnel-vps-to-tx.service`）
   - 公网 22 不通，`Host tx` 必须走 Tailscale `100.102.105.22`，不要用 `122.51.1.233`
   - `zhuque_check.sh` 发现本机 `8765/health` 通就自动 POST，不用再设 `ZHUQUE_URL`
   - 没隧道时 `SKIP`（exit 10），写稿继续
+  - tx 无头 Chromium 偶发选图验证码，截图在 tx:`/tmp/zhuque-shots/`；点掉后重跑。隧道本身不用重打
 - 标点是口吻的一部分（段尾句号混合、图注无句号），写的时候就按发布版写，不是测完再补。测完只复盘，回写规则。
 
 ### 消融实验结论（2026-08-16，同一篇文章五个版本）
