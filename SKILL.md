@@ -1103,7 +1103,8 @@ JSON 文件：`/root/.openclaw/workspace-restore/docs/wxmp-themes/mdnice/紫色�
 - **要短**：一句话、20 字上下，只说画面重点，不求把图讲全。
 - **禁止「XX：」冒号前缀式**：❌ `codexradar 上我的用量：累计 27 亿 token，7 月 13 号一天就跑了 3.3 个亿，连着用了 20 天` → ✅ `累计 27 亿 token，7 月 13 号一天就跑了 3.3 个亿`。
 - 同理 ❌ `降智雷达：今天 Sol 的…` → ✅ 直接 `Sol 的 High 和 Medium 都是 135 分`。平台名/面板名正文里说过就行，图注不用再报幕。
-- **句尾不带「。」**（2026-08-15 发布手改固化）：❌ `…有套餐就能直接登。` → ✅ `…有套餐就能直接登`。正文段尾句号同样省略（段中句号保留，？！保留），QC 的 `caption_trailing_period_hits` / `paragraph_trailing_period_hits` 非空不交付。详见 `references/personal-voice-rules.md` v4。
+- **图注句尾不带「。」**（2026-08-15 发布手改固化）：❌ `…有套餐就能直接登。` → ✅ `…有套餐就能直接登`。QC 的 `caption_trailing_period_hits` 非空不交付。
+- **正文段尾句号混合**（2026-08-16 修正）：默认不带，约 1/5 自然收口句带；QC 的 `stylometry.hits` 非空不交付（段首模式/冒号/问号/逗号/句号率五项统计约束，阈值见 `references/anti-ai-stylometry.md`）。交付前建议再跑 `scripts/style_fingerprint.py` 和发布版基准对比。
 
 ### □ 推送就绪检查
 - [ ] `digest`（摘要）单独发给用户，不写在文章正文里

@@ -171,7 +171,7 @@ def caption_trailing_period_hits(output_text: str) -> list[str]:
 
 
 def paragraph_trailing_period_hits(output_text: str) -> list[str]:
-    """正文段落行尾带「。」= 命中。2026-08-15 发布手改固化：段尾句号省略，段中句号保留，？！保留。"""
+    """正文段落行尾带「。」的清单（供 stylometry 算比例；本身不扣分）。"""
     hits = []
     in_code = False
     for line in body_lines(output_text):
@@ -186,6 +186,68 @@ def paragraph_trailing_period_hits(output_text: str) -> list[str]:
         if text.endswith("。"):
             hits.append(text[:40])
     return hits
+
+
+def stylometry(output_text: str) -> dict:
+    """风格统计约束（2026-08-16 由发布版基准指纹固化，见 references/anti-ai-stylometry.md）。
+
+    基准：宇龙 2026-08 三篇发布版。AI 稿的典型偏差是「过度均匀/模板化」：
+    段首同字扎堆（我问/它答）、冒号引导句泛滥、问号过密、段尾句号删光或全保留。
+    段落数 < 15 时（贴图等短文）跳过。
+    """
+    in_code = False
+    paras: list[str] = []
+    for line in body_lines(output_text):
+        if line.startswith("```"):
+            in_code = not in_code
+            continue
+        if in_code or not line:
+            continue
+        if line.startswith(("#", "|", "!", "<")):
+            continue
+        m = re.match(r"^\*([^*].*?)\*\s*$", line)
+        if m:
+            paras.append(m.group(1).strip())
+            continue
+        paras.append(line[2:].strip() if line.startswith("> ") else line)
+    n_chars = sum(len(re.sub(r"\s", "", p)) for p in paras) or 1
+    result: dict = {"para_count": len(paras), "checked": len(paras) >= 15, "hits": []}
+    if len(paras) < 15:
+        return result
+
+    first = [p[0] for p in paras if p]
+    from collections import Counter
+
+    top_char, top_n = Counter(first).most_common(1)[0]
+    top_ratio = top_n / len(paras)
+    colon = len(re.findall(r"[：:]", "\n".join(paras))) * 100.0 / n_chars
+    question = len(re.findall(r"[？?]", "\n".join(paras))) * 100.0 / n_chars
+    comma = "\n".join(paras).count("，") * 100.0 / n_chars
+    end_period = sum(1 for p in paras if p.endswith("。")) / len(paras)
+
+    result.update(
+        {
+            "first_char_top": top_char,
+            "first_char_top_ratio": round(top_ratio, 3),
+            "colon_per100": round(colon, 2),
+            "question_per100": round(question, 2),
+            "comma_per100": round(comma, 2),
+            "para_end_period_ratio": round(end_period, 3),
+        }
+    )
+    if top_ratio > 0.15:
+        result["hits"].append(f"段首「{top_char}」开头占 {top_ratio:.0%}（>15%，我问/它答模板化）")
+    if colon > 0.9:
+        result["hits"].append(f"冒号 {colon:.2f}/百字（>0.9，「我说：它回：」过密）")
+    if question > 0.45:
+        result["hits"].append(f"问号 {question:.2f}/百字（>0.45，基准约 0.15）")
+    if comma > 5.5:
+        result["hits"].append(f"逗号 {comma:.2f}/百字（>5.5，句子切分不够）")
+    if end_period < 0.05:
+        result["hits"].append(f"段尾句号率 {end_period:.0%}（<5%，机械删光也是 AI 特征，留约 1/5 自然收口）")
+    elif end_period > 0.4:
+        result["hits"].append(f"段尾句号率 {end_period:.0%}（>40%，书面腔）")
+    return result
 
 
 def loose_part_headings(output_text: str) -> list[str]:
@@ -315,7 +377,8 @@ def score(prompt_text: str, output_text: str, article_type: str = "news") -> dic
         points -= 8
     points -= min(24, len(newspic_forbidden_hits) * 8)
     points -= min(8, len(caption_period_hits) * 2)
-    points -= min(8, len(para_period_hits) * 1)
+    style = stylometry(output_text) if article_type == "news" else {"checked": False, "hits": []}
+    points -= min(12, len(style.get("hits", [])) * 4)
 
     return {
         "score": max(points, 0),
@@ -338,6 +401,7 @@ def score(prompt_text: str, output_text: str, article_type: str = "news") -> dic
         "newspic_forbidden_hits": newspic_forbidden_hits,
         "caption_trailing_period_hits": caption_period_hits,
         "paragraph_trailing_period_hits": para_period_hits,
+        "stylometry": style,
         "uncaptioned_body_images": uncaptioned,
         "loose_part_headings": loose_parts,
         "part_token_hits": part_hits,
