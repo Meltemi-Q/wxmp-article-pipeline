@@ -23,6 +23,7 @@
 | `banlist-words.md` | 禁用词、负面语气软化对照表 | 写完后自检时 |
 | `image-caption-rules.md` | 图注规范、段落对应、HTML格式 | 配图时 |
 | `personal-voice-rules.md` | 用户真实口吻、现场校准感、去 AI 味；含微信语料三套味道、发布前手改 | 写正文前 |
+| `story-grammar.md` | 先分流长文/短评；长文五拍；句子来源路由；禁止解说腔 | 动笔前（比 voice 规则更先） |
 | `data-driven-writing-workflow.md` | 历史指标、爆款结构、数据预检 | 定选题/标题前 |
 | `prompt-result-case-pattern.md` | prompt + 截图 + 结果 + 判断的案例结构 | 写 AI 工具测试文时 |
 | `image-text-alignment-check.md` | 发布前检查图片和正文是否对得上 | 交付前 |
