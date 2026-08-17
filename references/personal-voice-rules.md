@@ -202,7 +202,7 @@
 
 - 说明：表层改写（标点/句式/修辞）骗不过统计特征；用户随手改 30 处就能从「较弱」翻到「显著」
 - 实操：**发布前用户快速手改一遍，就是最好的过检方式**，不要指望 AI 自己改到「显著」
-- 用法：写完先 `voice_match.py`，再 `zhuque_check.sh`。朱雀是硬验收（显著/较强），口吻是过检方法。为刷分改口气，两道都会掉。
+- 用法：写完先 `voice_match.py`，再 `aigc_check.sh`。自动化硬验收是 VPS 自托管检测（无验证码）；朱雀网页只抽查。口吻是过检方法。为刷分改口气，两道都会掉。详见 `references/aigc-detector.md`。
 
 ## 最新纠偏 v5（2026-08-17，朋友圈 + 社群 + 历史公众号全量）
 
@@ -237,23 +237,23 @@ python3 scripts/voice_fewshot.py --query "<本篇主题/关键动作>" --n 8
 
 教程复盘腔（8/10 PPT，朱雀第四档）不要当骨架。开营稿也不要当骨架。
 
-## 最新纠偏 v6（2026-08-17，朱雀是验收，口吻是方法）
+## 最新纠偏 v6（2026-08-17，检测是验收，口吻是方法）
 
 两道都要过，顺序不能反：
 
 ```text
 先写成他的话（voice_match LIKE，hits 为空）
-    → 再送朱雀（显著 / 较强）
-    → 两道都过才交付
+    → 再送 aigc_check.sh（gate=pass，接近 v5/短评锚点）
+    → 朱雀网页能出分再抽查
 ```
 
-不要为了朱雀分去改口气。8/14 数据文原稿口吻对、朱雀较弱；硬贴「说白了」之后口吻更歪，朱雀掉到未发现。8/16 v5 原话填骨架，口吻 90、朱雀显著。同题材解说腔织稿，口吻 28、朱雀较弱。
+不要为了检测分去改口气。8/14 数据文原稿口吻对、朱雀较弱；硬贴「说白了」之后口吻更歪，朱雀掉到未发现。8/16 v5 原话填骨架，口吻 90、朱雀显著、自托管也是锚点。同题材解说腔织稿，口吻 28、朱雀较弱。
 
 写完必跑：
 
 ```bash
 python3 scripts/voice_match.py --target article.md
-python3 scripts/zhuque_check.sh <正文纯文本.txt>
+python3 scripts/aigc_check.sh <正文纯文本.txt>
 ```
 
 类型对照（词表在 `references/voice-lexicon.md`，脚本 `scripts/voice_match.py`）：
@@ -265,4 +265,4 @@ python3 scripts/zhuque_check.sh <正文纯文本.txt>
 | 贴图 | 短句 + 一句判断 + hashtag | 五拍、长分析 |
 | 教程 | 一步步 / 别怕 / 嚯个茶 | 香哈哈、奈斯（语料里没有，是编的） |
 
-`voice_match` 的 `UNLIKE` 或 `hits` 非空，先改稿，再测朱雀。
+`voice_match` 的 `UNLIKE` 或 `hits` 非空，先改稿，再跑 `aigc_check.sh`。

@@ -1,0 +1,14 @@
+[Unit]
+Description=Self-hosted Chinese AIGC detector (ONNX)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/.openclaw/skills/wxmp-article-pipeline
+ExecStart=/usr/bin/python3 /root/.openclaw/skills/wxmp-article-pipeline/scripts/aigc_server.py --bind 127.0.0.1 --port 8767
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

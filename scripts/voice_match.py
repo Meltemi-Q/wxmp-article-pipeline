@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """像不像用户本人：按文章类型对照口吻。
 
-朱雀是硬验收，口吻是过检方法。两个都要。
-为过检硬贴口头禅，朱雀和像他都会掉——8/14 数据文加「说白了」就是。
+自动化验收走 aigc_check.sh，口吻是过检方法。两个都要。
+为过检硬贴口头禅，检测和像他都会掉——8/14 数据文加「说白了」就是。
 
 用法:
   python3 scripts/voice_match.py --target drafts/.../article.md
@@ -248,7 +248,7 @@ def assess(text: str, scene: str = "auto", article_type: str = "news") -> dict:
         "fake_oral": fake,
         "overuse": overuse,
         "hits": hits,
-        "note": "朱雀要过；过检靠像他写的，不要为刷分改口气",
+        "note": "aigc_check 要过；过检靠像他写的，不要为刷分改口气",
     }
 
 

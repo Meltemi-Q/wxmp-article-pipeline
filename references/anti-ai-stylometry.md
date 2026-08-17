@@ -80,7 +80,7 @@ python3 scripts/wxmp_article_contract_qc.py --expected-images ... --output artic
 有用户口述稿（飞书/语音）
   → AI 只做缝合排版（原话保留率尽量 >70%，禁书面化重写）
   → 自动应用手改规律全套（标点混合 + 语气词 + 图注描述腔 + 小节标题情绪化）
-  → zhuque_check.sh 检测 → 预期「显著/较强」→ 推草稿箱
+  → aigc_check.sh 检测 → 预期 gate=pass → 推草稿箱
 
 只有图、没有口述稿
   → 按 story-grammar：先出原话表（截图气泡）+ 同类型发布版当骨架 + 禁解说腔
@@ -160,9 +160,9 @@ python3 scripts/wxmp_article_contract_qc.py --expected-images ... --output artic
 5. **贴图正文多数测不了字数**。不要为过检注水。真截图走图片检测能过（1.1%）；设计封面会被打成 100%。封面优先用结果图/对话截图，不要用 AI 海报。
 6. 滑块可拖；拖不动就关 X 换 fp，改回选图。单卡太久会「服务超时」。换 fp 时要写 `aiGenTxtLastCheckDate`，并重连 WebSocket。
 
-### 朱雀是硬验收，口吻是过检方法（2026-08-17）
+### 自动化验收改自托管，朱雀改抽检（2026-08-17）
 
-朱雀分重要，发布前要到显著/较强。但它不是拿来刷的：先 `voice_match.py` 看像不像他，再送朱雀。
+朱雀网页有验证码和额度，不能当流水线硬依赖。VPS 上用开源中文检测 `aigc_check.sh`（详见 `references/aigc-detector.md`）。`gate=pass` 表示接近 8/16 v5 / 短评锚点，**不是朱雀显著**。口吻仍是过检方法：先 `voice_match.py`，再送检测。
 
 | 稿 | 口吻 | 朱雀 |
 |---|---|---|

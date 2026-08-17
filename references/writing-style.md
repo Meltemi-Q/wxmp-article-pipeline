@@ -23,7 +23,7 @@
 | `banlist-words.md` | 禁用词、负面语气软化对照表 | 写完后自检时 |
 | `image-caption-rules.md` | 图注规范、段落对应、HTML格式 | 配图时 |
 | `personal-voice-rules.md` | 用户真实口吻；四套味道 + 手改账本；写前 `voice_fewshot.py`，写完 `voice_match.py` | 写正文前 / 写完 |
-| `voice-lexicon.md` | 按类型对照的口气词表；朱雀是验收，口吻是方法 | 写完对照 |
+| `voice-lexicon.md` | 按类型对照的口气词表；自动化验收走 AIGC，口吻是方法 | 写完对照 |
 | `story-grammar.md` | 先分流长文/短评；长文五拍；句子来源路由；禁止解说腔 | 动笔前（比 voice 规则更先） |
 | `data-driven-writing-workflow.md` | 历史指标、爆款结构、数据预检 | 定选题/标题前 |
 | `prompt-result-case-pattern.md` | prompt + 截图 + 结果 + 判断的案例结构 | 写 AI 工具测试文时 |
@@ -44,7 +44,7 @@
 9. 原创：全是自己的经历和观点？
 10. 受众：企业老板、小白能不能看懂？如果只有程序员懂，重写。
 11. 数据：是否看过历史阅读/分享/互动数据？如果没有，先标注为“未做数据预检”。
-12. 语料：是否跑过 `voice_fewshot.py`，写完是否 `voice_match.py` 不是 UNLIKE？朱雀是否显著/较强？为刷分改口气则两道重测。
+12. 语料：是否跑过 `voice_fewshot.py`，写完是否 `voice_match.py` 不是 UNLIKE？`aigc_check.sh` 是否 `gate=pass`？为刷分改口气则两道重测。
 13. 证据：每个“神”的点有没有截图、文件或结果支撑？
 14. 图文：图片和正文是否一一对应？请求截图和结果图有没有成对？
 
