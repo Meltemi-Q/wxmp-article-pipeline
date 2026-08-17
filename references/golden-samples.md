@@ -16,7 +16,9 @@
 |---|---|---|---|---|
 | 2026-08-15 | 离了个大谱！Grok bot 在它电脑上给我开了个Claude账号 | 长文·工具实测·萌绿 | `references/archives/published/2026-08-15-离了个大谱Grok-bo/`（VPS）；本地 `archives/yulong-ai/published-2026-08-15-grok-bot-claude/` | 手改后标点/语气词全套；小节标题带情绪；互动句点产品名 |
 | 2026-08-15 | AI总是写内容不像你或 AI 味重？原因在这！ | 贴图 newspic | 本地 `archives/yulong-ai/published-2026-08-15-ai-unlike-you/` | 贴图节奏：①②③④清单 + 一句结论；hashtag 收尾 |
-| 2026-08-10 | 手机遥控电脑 DeepSeek，3 毛钱做完8页PPT还传到了云端！ | 长文·上手教程 | 本地 `archives/yulong-ai/28243bff033d99a5/` | 教程节奏：一步一图一句；提醒句（YOLO 试水）怎么写 |
+| 2026-08-16 | 马斯克 Grok bot 能跑在微信里了！（v5） | 长文·原话填骨架 | 本地 `drafts/2026-08-16-grok-bot-wechat/` | 口吻 LIKE + 朱雀显著；截图气泡填五拍，禁解说腔 |
+| 2026-08-14 | 我把自己4万条微信倒出来了 | 长文·数据复盘 | 本地 `drafts/2026-08-14-wechat-self-portrait/` | 数据口气用「这意味着啥」，不要贴「说白了」 |
+| 2026-08-10 | 手机遥控电脑 DeepSeek，3 毛钱做完8页PPT还传到了云端！ | 长文·上手教程 | 本地 `archives/yulong-ai/28243bff033d99a5/` | 只学教程一步一图；朱雀第四档，不当新长文 fewshot |
 | 2026-08-08 | 这个免费软件，让DeepSeek像Codex一样在电脑里高强度干活儿！ | 长文·工具介绍 | 本地 `archives/yulong-ai/cbe3cc8e88c5492c/` | 技术概念翻译成人话（API Key=钥匙）；费用怎么交代 |
 | 2026-03-23 | 我把10个AI拉进一个群，第一天就乱了——但结果很香 | 长文·爆款（37884 读） | VPS `references/archives/published/2026-03-23-我把10个AI拉进一个群/` | 开头现场感 + 反差结构；老文标点是旧口径，只学结构 |
 

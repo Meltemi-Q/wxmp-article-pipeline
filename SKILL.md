@@ -57,13 +57,13 @@ python3 /root/.openclaw/skills/wxmp-article-pipeline/scripts/pull_comments.py --
 3. **风格三层 + 骨架样本**（读取顺序固定）：
    - **先捞原句**：`python3 scripts/voice_fewshot.py --query "<本篇主题>" --n 8`（朋友圈 830 条 + 社群答疑 + 历史公众号；本机没有语料则 SKIP）
    - `~/Documents/WeChatArchive/corpus/persona_style.md`（口吻档案，摘要不够当 few-shot）
-   - `references/personal-voice-rules.md` v5（四套味道 + 发布手改账本）
+   - `references/personal-voice-rules.md` v6（四套味道 + 口吻按类型对照；朱雀是硬验收）
    - `references/story-grammar.md`（先分流长文/短评，长文套五拍，禁止解说腔）
    - `references/golden-samples.md` 挑**同类型**发布版 1 篇当骨架（段数/拍序/引号位置；发布版 > 推送版 > AI 稿）
    - `references/style-benchmarks.md`（可选，最多 1 篇，仅当用户点名或自己样本缺该类型）
 4. **用原话填骨架，不要织解说**：每一拍 = 用户原话或截图气泡 + 图 + 一句反应。AI 只写反应短句。禁止「它查了 / 回来说 / 它解释了」。图默认全用，图注描述腔（第七道硬闸），note 来源标「自动图注」。
 5. **不编事实**：价格、时间、套餐名、数字拿不准就进「待确认项」，宁可空着让用户扫一眼。缺「卡住」素材也标待确认，不要用顺滑成功学补上。
-6. **QC + 过检 + 交付**：先套手改操作（段尾句号混合、图注无句号、标题砍第二分句），再跑 QC（含 stylometry）。朱雀用 `scripts/zhuque_check.sh`：VPS 走 `127.0.0.1:8765` 隧道到 tx（Playwright），本机有浏览器也可直测；隧道没打则 SKIP。测完复盘回写规则。交付时写清原话来源：口述 / 截图气泡 / 几乎没有。几乎没有的，标注「建议发布前快速手改一遍」。默认 `write_only`，用户明说「直接推」才推草稿箱。
+6. **QC + 口吻 + 朱雀 + 交付**：先套手改操作（段尾句号混合、图注无句号、标题砍第二分句），再跑 QC（含 stylometry + `voice_match`）。口吻 `UNLIKE` 或 `hits` 非空，先改到像他，再测朱雀。朱雀用 `scripts/zhuque_check.sh`：VPS 走 `127.0.0.1:8765` 隧道到 tx（Playwright），本机有浏览器也可直测；隧道没打则 SKIP。两道都过才算完：口吻 LIKE/MIXED 且无 hits，朱雀显著或较强。为刷朱雀分硬贴口头禅，两道都会掉。交付时写清原话来源：口述 / 截图气泡 / 几乎没有。几乎没有的，标注「建议发布前快速手改一遍」。默认 `write_only`，用户明说「直接推」才推草稿箱。
 7. **发布后闭环**：用户发布后跑 `compare_publish_edits.py`，手改规律回写 v4 + 新发布版进 golden-samples。每发一篇，下一篇首稿就更像。
 8. **想直接过检**：60 秒口述按五拍把故事讲完（语音转写 200 字也行）。这比让 AI 磨十轮都准。
 
@@ -239,7 +239,7 @@ draft_add(payload)  # ensure_ascii=False
 写作前不要只套 skill 规则，还要做三件事：
 
 1. 看历史指标：阅读、分享、点赞、评论、互动率，找相似爆款结构。
-2. 看用户语料：本机先跑 `python3 scripts/voice_fewshot.py --query "<本篇主题>" --n 8`，从朋友圈/社群/历史公众号捞跟本篇相关的原句。只学句式，不搬隐私事实。`persona_style.md` 是摘要，不能代替检索。有「发布版 vs 推送前草稿」就对照手改，别只看 AI 长稿。
+2. 看用户语料：本机先跑 `python3 scripts/voice_fewshot.py --query "<本篇主题>" --n 8`，从朋友圈/社群/历史公众号捞跟本篇相关的原句。写完再跑 `python3 scripts/voice_match.py --target article.md`，按文章类型对照口气。只学句式，不搬隐私事实。`persona_style.md` 是摘要，不能代替检索。有「发布版 vs 推送前草稿」就对照手改，别只看 AI 长稿。朱雀是硬验收，口吻是过检方法，不要为刷分改口气。
 3. 看本篇素材：prompt、截图、结果文件、用户最新修正必须优先于旧模板。飞书/口述稿优先照搬原话，只做切段和配图。
 
 对应参考：
@@ -1107,7 +1107,7 @@ JSON 文件：`/root/.openclaw/workspace-restore/docs/wxmp-themes/mdnice/紫色�
 - **禁止「XX：」冒号前缀式**：❌ `codexradar 上我的用量：累计 27 亿 token，7 月 13 号一天就跑了 3.3 个亿，连着用了 20 天` → ✅ `累计 27 亿 token，7 月 13 号一天就跑了 3.3 个亿`。
 - 同理 ❌ `降智雷达：今天 Sol 的…` → ✅ 直接 `Sol 的 High 和 Medium 都是 135 分`。平台名/面板名正文里说过就行，图注不用再报幕。
 - **图注句尾不带「。」**（2026-08-15 发布手改固化）：❌ `…有套餐就能直接登。` → ✅ `…有套餐就能直接登`。QC 的 `caption_trailing_period_hits` 非空不交付。
-- **正文段尾句号混合**（2026-08-16 修正）：默认不带，约 1/5 自然收口句带；QC 的 `stylometry.hits` 非空不交付（段首模式/冒号/问号/逗号/句号率五项统计约束，阈值见 `references/anti-ai-stylometry.md`）。交付前建议再跑 `scripts/style_fingerprint.py` 和发布版基准对比。
+- **正文段尾句号混合**（2026-08-16 修正）：默认不带，约 1/5 自然收口句带；QC 的 `stylometry.hits` 非空不交付（段首模式/冒号/问号/逗号/句号率五项统计约束，阈值见 `references/anti-ai-stylometry.md`）。交付前跑 `scripts/voice_match.py --target article.md`，`verdict=UNLIKE` 或 `hits` 非空不交付；再跑 `scripts/style_fingerprint.py` 和发布版基准对比。朱雀另测，两道都过才算完。
 
 ### □ 推送就绪检查
 - [ ] `digest`（摘要）单独发给用户，不写在文章正文里

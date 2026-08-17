@@ -38,6 +38,9 @@ COMMUNITY_ALLOW = {
 PITCH_HEAD = re.compile(
     r"^(首先|我来做个自我介绍|我先说结论|好了～|好了~|第\s*[①②③④⑤1-5]|1️⃣|2️⃣|3️⃣)"
 )
+RITUAL = re.compile(
+    r"(分享就到这|大家晚上好|早上好啦|爬楼密码|屿龙剧情|早晨屿龙|启动场景|德经画幅)"
+)
 PII = re.compile(
     r"(wxid_|1[3-9]\d{9}|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"
     r"|到账|转账|退回|凑\s*\d+w|\d{4,}元|银行卡)"
@@ -110,6 +113,8 @@ def add_row(rows: list[dict], scene: str, year: int | str, text: str) -> None:
         return
     n = len(text)
     if n < 12 or n > 280:
+        return
+    if RITUAL.search(text):
         return
     rows.append({"scene": scene, "year": int(year) if str(year).isdigit() else 0, "n": n, "text": text})
 
@@ -201,6 +206,8 @@ def score(row: dict, q_tokens: set[str]) -> float:
         row["scene"], 1.0
     )
     recency = 1.0 + min(max(row.get("year", 0) - 2023, 0), 3) * 0.05
+    if row["scene"] == "article" and row.get("year", 0) < 2025:
+        recency *= 0.55
     return overlap * boost * recency / (1.0 + row["n"] / 180.0)
 
 
@@ -247,7 +254,23 @@ def main() -> int:
     ap.add_argument("--n", type=int, default=8)
     ap.add_argument("--rebuild", action="store_true")
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--check", help="对一篇稿跑 voice_match，朱雀另测")
     args = ap.parse_args()
+
+    if args.check:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from voice_match import assess
+
+        text = Path(args.check).read_text(encoding="utf-8", errors="replace")
+        result = assess(text)
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+        else:
+            print(f"scene={result['scene']} score={result['score']} verdict={result['verdict']}")
+            print("like:", ", ".join(result["like"]) or "（无）")
+            for h in result["hits"]:
+                print("-", h)
+        return 0 if result["verdict"] != "UNLIKE" else 1
 
     if not CORPUS.exists() and not MOMENTS_JSONL.exists():
         return skip("本机没有 WeChatArchive / pyq 语料")

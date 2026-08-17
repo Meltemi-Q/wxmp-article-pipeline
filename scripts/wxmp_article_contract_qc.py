@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import importlib.util
 import json
 import re
 from pathlib import Path
@@ -186,6 +187,19 @@ def paragraph_trailing_period_hits(output_text: str) -> list[str]:
         if text.endswith("。"):
             hits.append(text[:40])
     return hits
+
+
+def voice_match_check(output_text: str, article_type: str) -> dict:
+    """口吻对照。朱雀另测；这里只看像不像他。"""
+    path = Path(__file__).resolve().parent / "voice_match.py"
+    spec = importlib.util.spec_from_file_location("voice_match", path)
+    if spec is None or spec.loader is None:
+        return {"checked": False, "verdict": "SKIP", "hits": [], "score": None}
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    result = mod.assess(output_text, scene="auto", article_type=article_type)
+    result["checked"] = True
+    return result
 
 
 def stylometry(output_text: str) -> dict:
@@ -379,6 +393,10 @@ def score(prompt_text: str, output_text: str, article_type: str = "news") -> dic
     points -= min(8, len(caption_period_hits) * 2)
     style = stylometry(output_text) if article_type == "news" else {"checked": False, "hits": []}
     points -= min(12, len(style.get("hits", [])) * 4)
+    voice = voice_match_check(output_text, article_type)
+    points -= min(16, len(voice.get("hits", [])) * 4)
+    if voice.get("verdict") == "UNLIKE":
+        points -= 8
 
     return {
         "score": max(points, 0),
@@ -402,6 +420,7 @@ def score(prompt_text: str, output_text: str, article_type: str = "news") -> dic
         "caption_trailing_period_hits": caption_period_hits,
         "paragraph_trailing_period_hits": para_period_hits,
         "stylometry": style,
+        "voice_match": voice,
         "uncaptioned_body_images": uncaptioned,
         "loose_part_headings": loose_parts,
         "part_token_hits": part_hits,

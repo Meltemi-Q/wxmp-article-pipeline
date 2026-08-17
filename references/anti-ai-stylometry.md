@@ -159,3 +159,16 @@ python3 scripts/wxmp_article_contract_qc.py --expected-images ... --output artic
 4. **测前必须裁交付备注**。图文对照表、待确认项、副标题说明、存档 HTML `style=` 都要先剥掉。
 5. **贴图正文多数测不了字数**。不要为过检注水。真截图走图片检测能过（1.1%）；设计封面会被打成 100%。封面优先用结果图/对话截图，不要用 AI 海报。
 6. 滑块可拖；拖不动就关 X 换 fp，改回选图。单卡太久会「服务超时」。换 fp 时要写 `aiGenTxtLastCheckDate`，并重连 WebSocket。
+
+### 朱雀是硬验收，口吻是过检方法（2026-08-17）
+
+朱雀分重要，发布前要到显著/较强。但它不是拿来刷的：先 `voice_match.py` 看像不像他，再送朱雀。
+
+| 稿 | 口吻 | 朱雀 |
+|---|---|---|
+| 8/16 v5 原话填骨架 | LIKE 90 | 显著 |
+| 同题材 grokcli 解说腔 | UNLIKE 28 | 较弱 |
+| 8/14 数据文原稿 | LIKE 90 | 较弱 |
+| 8/14 硬贴「说白了」 | MIXED 80 | 未发现 |
+
+为过检改口气，两道一起掉。口吻词表见 `references/voice-lexicon.md`。
