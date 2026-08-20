@@ -17,6 +17,7 @@
 | 小绿书推送失败 | 用了 `news` 接口 | 贴图用 `newspic`，长文章用 `news` |
 | 图片内容和段落对不上 | 凭文件名猜图片内容 | 逐张用视觉工具看图，不猜 |
 | 待审区 API 返回 401 | 用了 Authorization header | 待审区用 cookie 认证，不是 Bearer token |
+| `40164` invalid ip not in whitelist | 家宽 / Win 出口 IP 不在公众号 API 白名单 | 不要改密钥。用 `push_via_vps.py` 让请求从 VPS 出去；或把固定公网 IP 加进微信后台白名单 |
 
 ---
 
@@ -283,7 +284,11 @@ assert "PART" not in content.upper(), "文章中不能出现 PART 字样"
 
 ## 凭据文件位置
 
+按顺序找第一个存在的文件：
+
 ```
+$WXMP_ENV_FILE
+~/.openclaw/secrets/wxmp-yulong.env
 /root/.openclaw/secrets/wxmp-yulong.env
 ```
 
@@ -295,7 +300,7 @@ assert "PART" not in content.upper(), "文章中不能出现 PART 字样"
 ```python
 from pathlib import Path
 
-def load_env(path=Path("/root/.openclaw/secrets/wxmp-yulong.env")):
+def load_env(path=Path.home() / ".openclaw" / "secrets" / "wxmp-yulong.env"):
     env = {}
     for line in path.read_text().splitlines():
         line = line.strip()

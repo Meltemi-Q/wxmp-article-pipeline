@@ -1180,11 +1180,21 @@ response = requests.post(
 
 ## 凭据位置
 
+`push_article.py` 按这个顺序找第一个存在的文件：
+
 ```
-/root/.openclaw/secrets/wxmp-yulong.env
+$WXMP_ENV_FILE
+~/.openclaw/secrets/wxmp-yulong.env          # Mac / Win 本机
+/root/.openclaw/secrets/wxmp-yulong.env      # VPS
 ```
 
-包含 `WXMP_APPID` 和 `WXMP_APPSECRET`。
+包含 `WXMP_APPID` 和 `WXMP_APPSECRET`。不要把这份文件放进 GitHub、weixin-write 仓库或可同步网盘。
+
+家宽 / Win 本机直连 `api.weixin.qq.com` 通常会 `40164`（IP 不在白名单）。写稿仍在本机，推送改走：
+
+```bash
+python3 scripts/push_via_vps.py --markdown article-push.md --images images/a.png --title "标题" --cover images/a.png --theme green --author 宇龙 --digest "摘要"
+```
 
 ---
 

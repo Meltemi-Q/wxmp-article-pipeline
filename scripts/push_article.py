@@ -22,7 +22,11 @@
   8. batchget 验证草稿到账
   9. 输出 report.json
 
-注意: 密钥从 /root/.openclaw/secrets/wxmp-yulong.env 读取，不要在命令行传密钥。
+注意: 密钥从本机 env 文件读取，不要在命令行传密钥。
+查找顺序：
+  1. 环境变量 WXMP_ENV_FILE
+  2. ~/.openclaw/secrets/wxmp-yulong.env   # Mac / Win 本机
+  3. /root/.openclaw/secrets/wxmp-yulong.env  # VPS
 """
 import shutil
 import argparse
@@ -35,7 +39,24 @@ from pathlib import Path
 
 import requests
 
-DEFAULT_ENV_FILE = Path("/root/.openclaw/secrets/wxmp-yulong.env")
+VPS_ENV_FILE = Path("/root/.openclaw/secrets/wxmp-yulong.env")
+HOME_ENV_FILE = Path.home() / ".openclaw" / "secrets" / "wxmp-yulong.env"
+
+
+def resolve_default_env_file() -> Path:
+    """挑第一个实际存在的凭据文件；都不存在时返回本机 home 路径，方便报错提示。"""
+    override = os.environ.get("WXMP_ENV_FILE", "").strip()
+    candidates = []
+    if override:
+        candidates.append(Path(override).expanduser())
+    candidates.extend([HOME_ENV_FILE, VPS_ENV_FILE])
+    for path in candidates:
+        if path.exists():
+            return path
+    return candidates[0]
+
+
+DEFAULT_ENV_FILE = resolve_default_env_file()
 
 
 # ---------------------------------------------------------------------------
