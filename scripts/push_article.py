@@ -375,7 +375,7 @@ def render_markdown_to_rainbow_html(
     html_parts.append(
         '<p style="margin: 32px 0 0; font-size: 14px; color: #999999; text-align: center; '
         'line-height: 1.8; border-top: 1px solid #eee; padding-top: 24px;">'
-        '我是宇龙，一个用 AI 搞副业的打工人</p>'
+        '我是宇龙，专注 AI Agent 场景应用落地</p>'
     )
     html_parts.append('</section>')
 
@@ -693,7 +693,7 @@ def render_markdown_to_purple_html(
     html_parts.append(
         '<p style="margin: 30px 0 0; font-size: 14px; color: #999; text-align: center; '
         'line-height: 1.8; border-top: 1px solid #eee; padding-top: 20px;">'
-        '我是宇龙，一个用 AI 搞副业的打工人</p>'
+        '我是宇龙，专注 AI Agent 场景应用落地</p>'
     )
     html_parts.append(
         '<p style="display: none;"><mp-style-type data-value="10000"></mp-style-type></p>'
@@ -924,7 +924,7 @@ def render_markdown_to_blue_html(
     html_parts.append(
         '<p style="margin: 30px 0 0; font-size: 14px; color: #999; text-align: center; '
         'line-height: 1.8; border-top: 1px solid #eee; padding-top: 20px;">'
-        '我是宇龙，一个用 AI 搞副业的打工人</p>'
+        '我是宇龙，专注 AI Agent 场景应用落地</p>'
     )
     html_parts.append(
         '<p style="display: none;"><mp-style-type data-value="10000"></mp-style-type></p>'
@@ -1144,7 +1144,7 @@ def render_markdown_to_green_html(
     html_parts.append(
         '<p style="margin: 30px 0 0; font-size: 14px; color: #999; text-align: center; '
         'line-height: 1.8; border-top: 1px solid #eee; padding-top: 20px;">'
-        '我是宇龙，一个用 AI 搞副业的打工人</p>'
+        '我是宇龙，专注 AI Agent 场景应用落地</p>'
     )
     html_parts.append(
         '<p style="display: none;"><mp-style-type data-value="10000"></mp-style-type></p>'
