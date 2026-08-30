@@ -413,6 +413,13 @@ def validate_html(html: str, title: str) -> list[str]:
     if re.search(r'<img src=""', html):
         errors.append("④ 图片使用了 src=\"\" + data-src 懒加载格式，微信编辑器不支持。请用 src=\"url\" 直接引用。")
 
+    # ⑤ 签名严格单次校验（必须严格等于 1）
+    sig_count = html.count("我是宇龙")
+    if sig_count > 1:
+        errors.append(f"⑤ 签名重复错误：检测到 '我是宇龙' 出现了 {sig_count} 次，必须严格只有 1 次！")
+    elif sig_count == 0:
+        errors.append("⑤ 签名缺失错误：未检测到 '我是宇龙' 页脚签名！")
+
     return errors
 
 
@@ -1158,6 +1165,486 @@ def render_markdown_to_green_html(
 
 
 
+
+
+# ---------------------------------------------------------------------------
+# 文本清洗与防重复签名预处理
+# ---------------------------------------------------------------------------
+
+def clean_markdown_text(markdown_text: str) -> tuple[str, str]:
+    """清洗 Markdown 文本：
+    1. 剥离尾部签名（如 '我是宇龙...'），避免与主题页脚重复出现两次
+    2. 提取文末 hashtag（如 '#微信 #小微 #AI #Agent'）
+    返回 (clean_text, hashtags_str)
+    """
+    lines = markdown_text.strip().splitlines()
+    hashtags = ""
+    while lines:
+        last = lines[-1].strip()
+        if not last:
+            lines.pop()
+            continue
+        if "我是宇龙" in last:
+            lines.pop()
+            continue
+        if last in ("---", "***", "* * *", "___"):
+            lines.pop()
+            continue
+        if re.match(r'^(?:#\S+\s*)+$', last):
+            hashtags = last
+            lines.pop()
+            continue
+        break
+    return "\n".join(lines), hashtags
+
+
+# ---------------------------------------------------------------------------
+# 主题 5: 黑金科技 (dark-gold)
+# ---------------------------------------------------------------------------
+
+def dark_gold_image_block(url: str, alt: str, caption: str) -> str:
+    return (
+        '<p style="text-align: center; margin: 24px 0 8px;">'
+        f'<img src="{url}" alt="{alt}" '
+        'style="max-width: 100%; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); '
+        'border: 1px solid #292524; height: auto !important;">'
+        '</p>'
+        f'<p style="text-align: center; color: #a8a29e; font-size: 13px; margin: 0 0 24px;">{caption}</p>'
+    )
+
+def render_markdown_to_dark_gold_html(markdown_text: str, image_map: dict) -> str:
+    clean_text, hashtags = clean_markdown_text(markdown_text)
+    lines = clean_text.splitlines()
+    html_parts = [
+        '<section style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, '
+        '\'Helvetica Neue\', Arial, sans-serif; font-size: 16px; color: #e7e5e4; line-height: 1.85; '
+        'padding: 24px 20px; background: linear-gradient(180deg, #18181b 0%, #1c1917 50%, #0c0a09 100%); '
+        'border-radius: 12px; box-sizing: border-box;">',
+    ]
+
+    def inline_format(text: str) -> str:
+        text = re.sub(r'\*\*(.+?)\*\*', r'<strong style="font-weight: bold; color: #fbbf24;">\1</strong>', text)
+        text = re.sub(r'\*(.+?)\*', r'<em style="color: #fde68a;">\1</em>', text)
+        text = re.sub(r'`(.+?)`', r'<code style="background: #27272a; color: #fde047; padding: 2px 6px; border-radius: 4px;">\1</code>', text)
+        return text
+
+    skip_h1 = bool(lines and lines[0].startswith("# ") and not lines[0].startswith("## "))
+    i = 0
+    pending_quotes = []
+
+    def flush_quotes():
+        nonlocal pending_quotes
+        if pending_quotes:
+            q_text = " ".join(pending_quotes).strip()
+            html_parts.append(
+                f'<blockquote style="margin: 20px 0; padding: 14px 18px; border-left: 4px solid #f59e0b; '
+                f'background: rgba(245, 158, 11, 0.08); color: #fde68a; border-radius: 0 12px 12px 0;">'
+                f'<p style="margin: 0; font-size: 15px; line-height: 1.7;">{q_text}</p></blockquote>'
+            )
+            pending_quotes = []
+
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.strip()
+        if re.match(r'^\s*<!--.*-->\s*$', line):
+            i += 1; continue
+        if skip_h1 and i == 0 and stripped.startswith("# ") and not stripped.startswith("## "):
+            skip_h1 = False; i += 1; continue
+        if stripped in ("---", "***", "* * *"):
+            flush_quotes()
+            html_parts.append('<hr style="border: none; height: 1px; background: linear-gradient(90deg, #78350f, #f59e0b, #78350f); margin: 30px 0;" />')
+            i += 1; continue
+        if stripped.startswith("> "):
+            pending_quotes.append(inline_format(stripped[2:]))
+            i += 1; continue
+        else:
+            flush_quotes()
+
+        if stripped.startswith("## "):
+            title = inline_format(stripped[3:].strip())
+            html_parts.append(f'<h2 style="font-size: 21px; font-weight: 800; color: #fbbf24; border-bottom: 2px solid #b45309; padding-bottom: 8px; margin: 32px 0 16px;">{title}</h2>')
+            i += 1; continue
+        if stripped.startswith("### "):
+            title = inline_format(stripped[4:].strip())
+            html_parts.append(f'<h3 style="margin: 24px 0 12px; font-size: 17px; font-weight: 700; color: #f59e0b;">{title}</h3>')
+            i += 1; continue
+
+        img_match = re.match(r'!\[([^\]]*)\]\(([^)]+)\)', stripped)
+        if img_match:
+            alt, path = img_match.group(1), img_match.group(2)
+            img_info = image_map.get(path) or image_map.get(Path(path).name)
+            caption = img_info.get("caption", "") if img_info else ""
+            peek = i + 1
+            while peek < len(lines) and lines[peek].strip() == "": peek += 1
+            if not caption and peek < len(lines):
+                cap_match = re.match(r'^\*([^*]+)\*$', lines[peek].strip())
+                if cap_match: caption = cap_match.group(1); i = peek
+            if img_info:
+                html_parts.append(dark_gold_image_block(img_info["url"], alt or img_info.get("alt", ""), caption))
+            else:
+                html_parts.append(f'<!-- ⚠️ 图片未映射: {path} -->')
+            i += 1; continue
+
+        if stripped.startswith("- ") or stripped.startswith("* "):
+            items = []
+            while i < len(lines) and (lines[i].strip().startswith("- ") or lines[i].strip().startswith("* ")):
+                items.append(f'<li style="margin: 0 0 8px;">{inline_format(lines[i].strip()[2:])}</li>')
+                i += 1
+            html_parts.append('<ul style="margin: 15px 0; padding-left: 24px; color: #d6d3d1;">' + "".join(items) + '</ul>')
+            continue
+
+        if not stripped:
+            i += 1; continue
+        if stripped.startswith('<') and re.search(r'</[a-z]+>$', stripped):
+            html_parts.append(stripped); i += 1; continue
+        html_parts.append(f'<p style="margin: 0 0 16px; font-size: 16px; text-align: justify; color: #e7e5e4;">{inline_format(stripped)}</p>')
+        i += 1
+
+    flush_quotes()
+    if hashtags:
+        html_parts.append(f'<div style="text-align: center; margin: 28px 0 14px; font-size: 13px; color: #f59e0b; letter-spacing: 0.5px;">{hashtags}</div>')
+    html_parts.append(
+        '<p style="margin: 30px 0 0; font-size: 14px; color: #a8a29e; text-align: center; line-height: 1.8; border-top: 1px solid #292524; padding-top: 20px;">'
+        '我是宇龙，专注 AI Agent 场景应用落地</p>'
+    )
+    html_parts.append('<p style="display: none;"><mp-style-type data-value="10000"></mp-style-type></p></section>')
+    return "\n".join(html_parts)
+
+
+# ---------------------------------------------------------------------------
+# 主题 6: 极简纯粹 (minimal)
+# ---------------------------------------------------------------------------
+
+def minimal_image_block(url: str, alt: str, caption: str) -> str:
+    return (
+        '<p style="text-align: center; margin: 24px 0 8px;">'
+        f'<img src="{url}" alt="{alt}" '
+        'style="max-width: 100%; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); height: auto !important;">'
+        '</p>'
+        f'<p style="text-align: center; color: #6b7280; font-size: 13px; margin: 0 0 24px;">{caption}</p>'
+    )
+
+def render_markdown_to_minimal_html(markdown_text: str, image_map: dict) -> str:
+    clean_text, hashtags = clean_markdown_text(markdown_text)
+    lines = clean_text.splitlines()
+    html_parts = [
+        '<section style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, '
+        '\'Helvetica Neue\', Arial, sans-serif; font-size: 16px; color: #1f2937; line-height: 1.85; '
+        'padding: 24px 16px; background: #ffffff; box-sizing: border-box;">',
+    ]
+
+    def inline_format(text: str) -> str:
+        text = re.sub(r'\*\*(.+?)\*\*', r'<strong style="font-weight: 700; color: #111827;">\1</strong>', text)
+        text = re.sub(r'\*(.+?)\*', r'<em style="color: #4b5563;">\1</em>', text)
+        text = re.sub(r'`(.+?)`', r'<code style="background: #f3f4f6; color: #111827; padding: 2px 5px; border-radius: 3px;">\1</code>', text)
+        return text
+
+    skip_h1 = bool(lines and lines[0].startswith("# ") and not lines[0].startswith("## "))
+    i = 0
+    pending_quotes = []
+
+    def flush_quotes():
+        nonlocal pending_quotes
+        if pending_quotes:
+            q_text = " ".join(pending_quotes).strip()
+            html_parts.append(
+                f'<blockquote style="margin: 20px 0; padding: 12px 16px; border-left: 3px solid #111827; '
+                f'background: #f9fafb; color: #374151; border-radius: 0 6px 6px 0;">'
+                f'<p style="margin: 0; font-size: 15px; line-height: 1.7;">{q_text}</p></blockquote>'
+            )
+            pending_quotes = []
+
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.strip()
+        if re.match(r'^\s*<!--.*-->\s*$', line):
+            i += 1; continue
+        if skip_h1 and i == 0 and stripped.startswith("# ") and not stripped.startswith("## "):
+            skip_h1 = False; i += 1; continue
+        if stripped in ("---", "***", "* * *"):
+            flush_quotes()
+            html_parts.append('<hr style="border: none; border-top: 1px dashed #e5e7eb; margin: 30px 0;" />')
+            i += 1; continue
+        if stripped.startswith("> "):
+            pending_quotes.append(inline_format(stripped[2:]))
+            i += 1; continue
+        else:
+            flush_quotes()
+
+        if stripped.startswith("## "):
+            title = inline_format(stripped[3:].strip())
+            html_parts.append(f'<h2 style="font-size: 20px; font-weight: 800; color: #111827; border-left: 4px solid #111827; padding-left: 10px; margin: 32px 0 16px;">{title}</h2>')
+            i += 1; continue
+        if stripped.startswith("### "):
+            title = inline_format(stripped[4:].strip())
+            html_parts.append(f'<h3 style="margin: 22px 0 10px; font-size: 17px; font-weight: 700; color: #374151;">{title}</h3>')
+            i += 1; continue
+
+        img_match = re.match(r'!\[([^\]]*)\]\(([^)]+)\)', stripped)
+        if img_match:
+            alt, path = img_match.group(1), img_match.group(2)
+            img_info = image_map.get(path) or image_map.get(Path(path).name)
+            caption = img_info.get("caption", "") if img_info else ""
+            peek = i + 1
+            while peek < len(lines) and lines[peek].strip() == "": peek += 1
+            if not caption and peek < len(lines):
+                cap_match = re.match(r'^\*([^*]+)\*$', lines[peek].strip())
+                if cap_match: caption = cap_match.group(1); i = peek
+            if img_info:
+                html_parts.append(minimal_image_block(img_info["url"], alt or img_info.get("alt", ""), caption))
+            else:
+                html_parts.append(f'<!-- ⚠️ 图片未映射: {path} -->')
+            i += 1; continue
+
+        if stripped.startswith("- ") or stripped.startswith("* "):
+            items = []
+            while i < len(lines) and (lines[i].strip().startswith("- ") or lines[i].strip().startswith("* ")):
+                items.append(f'<li style="margin: 0 0 8px;">{inline_format(lines[i].strip()[2:])}</li>')
+                i += 1
+            html_parts.append('<ul style="margin: 15px 0; padding-left: 24px; color: #4b5563;">' + "".join(items) + '</ul>')
+            continue
+
+        if not stripped:
+            i += 1; continue
+        if stripped.startswith('<') and re.search(r'</[a-z]+>$', stripped):
+            html_parts.append(stripped); i += 1; continue
+        html_parts.append(f'<p style="margin: 0 0 16px; font-size: 16px; text-align: justify; color: #1f2937;">{inline_format(stripped)}</p>')
+        i += 1
+
+    flush_quotes()
+    if hashtags:
+        html_parts.append(f'<div style="text-align: center; margin: 28px 0 14px; font-size: 13px; color: #6b7280; letter-spacing: 0.5px;">{hashtags}</div>')
+    html_parts.append(
+        '<p style="margin: 30px 0 0; font-size: 14px; color: #9ca3af; text-align: center; line-height: 1.8; border-top: 1px solid #f3f4f6; padding-top: 20px;">'
+        '我是宇龙，专注 AI Agent 场景应用落地</p>'
+    )
+    html_parts.append('<p style="display: none;"><mp-style-type data-value="10000"></mp-style-type></p></section>')
+    return "\n".join(html_parts)
+
+
+# ---------------------------------------------------------------------------
+# 主题 7: 优雅暮蓝 (twilight)
+# ---------------------------------------------------------------------------
+
+def twilight_image_block(url: str, alt: str, caption: str) -> str:
+    return (
+        '<p style="text-align: center; margin: 24px 0 8px;">'
+        f'<img src="{url}" alt="{alt}" '
+        'style="max-width: 100%; border-radius: 8px; box-shadow: 0 4px 14px rgba(59,130,246,0.12); height: auto !important;">'
+        '</p>'
+        f'<p style="text-align: center; color: #64748b; font-size: 13px; margin: 0 0 24px;">{caption}</p>'
+    )
+
+def render_markdown_to_twilight_html(markdown_text: str, image_map: dict) -> str:
+    clean_text, hashtags = clean_markdown_text(markdown_text)
+    lines = clean_text.splitlines()
+    html_parts = [
+        '<section style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, '
+        '\'Helvetica Neue\', Arial, sans-serif; font-size: 16px; color: #0f172a; line-height: 1.85; '
+        'padding: 24px 20px; background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%); '
+        'box-sizing: border-box;">',
+    ]
+
+    def inline_format(text: str) -> str:
+        text = re.sub(r'\*\*(.+?)\*\*', r'<strong style="font-weight: bold; color: #1d4ed8;">\1</strong>', text)
+        text = re.sub(r'\*(.+?)\*', r'<em style="color: #2563eb;">\1</em>', text)
+        text = re.sub(r'`(.+?)`', r'<code style="background: #e2e8f0; color: #1e3a8a; padding: 2px 6px; border-radius: 4px;">\1</code>', text)
+        return text
+
+    skip_h1 = bool(lines and lines[0].startswith("# ") and not lines[0].startswith("## "))
+    i = 0
+    pending_quotes = []
+
+    def flush_quotes():
+        nonlocal pending_quotes
+        if pending_quotes:
+            q_text = " ".join(pending_quotes).strip()
+            html_parts.append(
+                f'<blockquote style="margin: 20px 0; padding: 14px 18px; border-left: 4px solid #3b82f6; '
+                f'background: rgba(59, 130, 246, 0.08); color: #1e3a8a; border-radius: 0 10px 10px 0;">'
+                f'<p style="margin: 0; font-size: 15px; line-height: 1.7;">{q_text}</p></blockquote>'
+            )
+            pending_quotes = []
+
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.strip()
+        if re.match(r'^\s*<!--.*-->\s*$', line):
+            i += 1; continue
+        if skip_h1 and i == 0 and stripped.startswith("# ") and not stripped.startswith("## "):
+            skip_h1 = False; i += 1; continue
+        if stripped in ("---", "***", "* * *"):
+            flush_quotes()
+            html_parts.append('<hr style="border: none; height: 2px; background: linear-gradient(90deg, #60a5fa, #3b82f6, #1d4ed8); margin: 30px 0;" />')
+            i += 1; continue
+        if stripped.startswith("> "):
+            pending_quotes.append(inline_format(stripped[2:]))
+            i += 1; continue
+        else:
+            flush_quotes()
+
+        if stripped.startswith("## "):
+            title = inline_format(stripped[3:].strip())
+            html_parts.append(f'<h2 style="font-size: 21px; font-weight: 800; color: #2563eb; border-bottom: 2px solid #bfdbfe; padding-bottom: 8px; margin: 32px 0 16px;">{title}</h2>')
+            i += 1; continue
+        if stripped.startswith("### "):
+            title = inline_format(stripped[4:].strip())
+            html_parts.append(f'<h3 style="margin: 24px 0 12px; font-size: 17px; font-weight: 700; color: #1d4ed8;">{title}</h3>')
+            i += 1; continue
+
+        img_match = re.match(r'!\[([^\]]*)\]\(([^)]+)\)', stripped)
+        if img_match:
+            alt, path = img_match.group(1), img_match.group(2)
+            img_info = image_map.get(path) or image_map.get(Path(path).name)
+            caption = img_info.get("caption", "") if img_info else ""
+            peek = i + 1
+            while peek < len(lines) and lines[peek].strip() == "": peek += 1
+            if not caption and peek < len(lines):
+                cap_match = re.match(r'^\*([^*]+)\*$', lines[peek].strip())
+                if cap_match: caption = cap_match.group(1); i = peek
+            if img_info:
+                html_parts.append(twilight_image_block(img_info["url"], alt or img_info.get("alt", ""), caption))
+            else:
+                html_parts.append(f'<!-- ⚠️ 图片未映射: {path} -->')
+            i += 1; continue
+
+        if stripped.startswith("- ") or stripped.startswith("* "):
+            items = []
+            while i < len(lines) and (lines[i].strip().startswith("- ") or lines[i].strip().startswith("* ")):
+                items.append(f'<li style="margin: 0 0 8px;">{inline_format(lines[i].strip()[2:])}</li>')
+                i += 1
+            html_parts.append('<ul style="margin: 15px 0; padding-left: 24px; color: #334155;">' + "".join(items) + '</ul>')
+            continue
+
+        if not stripped:
+            i += 1; continue
+        if stripped.startswith('<') and re.search(r'</[a-z]+>$', stripped):
+            html_parts.append(stripped); i += 1; continue
+        html_parts.append(f'<p style="margin: 0 0 16px; font-size: 16px; text-align: justify; color: #0f172a;">{inline_format(stripped)}</p>')
+        i += 1
+
+    flush_quotes()
+    if hashtags:
+        html_parts.append(f'<div style="text-align: center; margin: 28px 0 14px; font-size: 13px; color: #2563eb; letter-spacing: 0.5px;">{hashtags}</div>')
+    html_parts.append(
+        '<p style="margin: 30px 0 0; font-size: 14px; color: #64748b; text-align: center; line-height: 1.8; border-top: 1px solid #cbd5e1; padding-top: 20px;">'
+        '我是宇龙，专注 AI Agent 场景应用落地</p>'
+    )
+    html_parts.append('<p style="display: none;"><mp-style-type data-value="10000"></mp-style-type></p></section>')
+    return "\n".join(html_parts)
+
+
+# ---------------------------------------------------------------------------
+# 主题 8: 活力暖橙 (sunset)
+# ---------------------------------------------------------------------------
+
+def sunset_image_block(url: str, alt: str, caption: str) -> str:
+    return (
+        '<p style="text-align: center; margin: 24px 0 8px;">'
+        f'<img src="{url}" alt="{alt}" '
+        'style="max-width: 100%; border-radius: 10px; box-shadow: 0 4px 14px rgba(234,88,12,0.10); height: auto !important;">'
+        '</p>'
+        f'<p style="text-align: center; color: #9a3412; font-size: 13px; margin: 0 0 24px;">{caption}</p>'
+    )
+
+def render_markdown_to_sunset_html(markdown_text: str, image_map: dict) -> str:
+    clean_text, hashtags = clean_markdown_text(markdown_text)
+    lines = clean_text.splitlines()
+    html_parts = [
+        '<section style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, '
+        '\'Helvetica Neue\', Arial, sans-serif; font-size: 16px; color: #292524; line-height: 1.85; '
+        'padding: 24px 20px; background: linear-gradient(180deg, #fffbf7 0%, #fff7ed 50%, #ffedd5 100%); '
+        'box-sizing: border-box;">',
+    ]
+
+    def inline_format(text: str) -> str:
+        text = re.sub(r'\*\*(.+?)\*\*', r'<strong style="font-weight: bold; color: #c2410c;">\1</strong>', text)
+        text = re.sub(r'\*(.+?)\*', r'<em style="color: #ea580c;">\1</em>', text)
+        text = re.sub(r'`(.+?)`', r'<code style="background: #fed7aa; color: #7c2d12; padding: 2px 6px; border-radius: 4px;">\1</code>', text)
+        return text
+
+    skip_h1 = bool(lines and lines[0].startswith("# ") and not lines[0].startswith("## "))
+    i = 0
+    pending_quotes = []
+
+    def flush_quotes():
+        nonlocal pending_quotes
+        if pending_quotes:
+            q_text = " ".join(pending_quotes).strip()
+            html_parts.append(
+                f'<blockquote style="margin: 20px 0; padding: 14px 18px; border-left: 4px solid #ea580c; '
+                f'background: rgba(234, 88, 12, 0.08); color: #7c2d12; border-radius: 0 10px 10px 0;">'
+                f'<p style="margin: 0; font-size: 15px; line-height: 1.7;">{q_text}</p></blockquote>'
+            )
+            pending_quotes = []
+
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.strip()
+        if re.match(r'^\s*<!--.*-->\s*$', line):
+            i += 1; continue
+        if skip_h1 and i == 0 and stripped.startswith("# ") and not stripped.startswith("## "):
+            skip_h1 = False; i += 1; continue
+        if stripped in ("---", "***", "* * *"):
+            flush_quotes()
+            html_parts.append('<hr style="border: none; height: 2px; background: linear-gradient(90deg, #fb923c, #ea580c, #c2410c); margin: 30px 0;" />')
+            i += 1; continue
+        if stripped.startswith("> "):
+            pending_quotes.append(inline_format(stripped[2:]))
+            i += 1; continue
+        else:
+            flush_quotes()
+
+        if stripped.startswith("## "):
+            title = inline_format(stripped[3:].strip())
+            html_parts.append(f'<h2 style="font-size: 21px; font-weight: 800; color: #ea580c; border-bottom: 2px solid #fdba74; padding-bottom: 8px; margin: 32px 0 16px;">{title}</h2>')
+            i += 1; continue
+        if stripped.startswith("### "):
+            title = inline_format(stripped[4:].strip())
+            html_parts.append(f'<h3 style="margin: 24px 0 12px; font-size: 17px; font-weight: 700; color: #c2410c;">{title}</h3>')
+            i += 1; continue
+
+        img_match = re.match(r'!\[([^\]]*)\]\(([^)]+)\)', stripped)
+        if img_match:
+            alt, path = img_match.group(1), img_match.group(2)
+            img_info = image_map.get(path) or image_map.get(Path(path).name)
+            caption = img_info.get("caption", "") if img_info else ""
+            peek = i + 1
+            while peek < len(lines) and lines[peek].strip() == "": peek += 1
+            if not caption and peek < len(lines):
+                cap_match = re.match(r'^\*([^*]+)\*$', lines[peek].strip())
+                if cap_match: caption = cap_match.group(1); i = peek
+            if img_info:
+                html_parts.append(sunset_image_block(img_info["url"], alt or img_info.get("alt", ""), caption))
+            else:
+                html_parts.append(f'<!-- ⚠️ 图片未映射: {path} -->')
+            i += 1; continue
+
+        if stripped.startswith("- ") or stripped.startswith("* "):
+            items = []
+            while i < len(lines) and (lines[i].strip().startswith("- ") or lines[i].strip().startswith("* ")):
+                items.append(f'<li style="margin: 0 0 8px;">{inline_format(lines[i].strip()[2:])}</li>')
+                i += 1
+            html_parts.append('<ul style="margin: 15px 0; padding-left: 24px; color: #44403c;">' + "".join(items) + '</ul>')
+            continue
+
+        if not stripped:
+            i += 1; continue
+        if stripped.startswith('<') and re.search(r'</[a-z]+>$', stripped):
+            html_parts.append(stripped); i += 1; continue
+        html_parts.append(f'<p style="margin: 0 0 16px; font-size: 16px; text-align: justify; color: #292524;">{inline_format(stripped)}</p>')
+        i += 1
+
+    flush_quotes()
+    if hashtags:
+        html_parts.append(f'<div style="text-align: center; margin: 28px 0 14px; font-size: 13px; color: #ea580c; letter-spacing: 0.5px;">{hashtags}</div>')
+    html_parts.append(
+        '<p style="margin: 30px 0 0; font-size: 14px; color: #9a3412; text-align: center; line-height: 1.8; border-top: 1px solid #fed7aa; padding-top: 20px;">'
+        '我是宇龙，专注 AI Agent 场景应用落地</p>'
+    )
+    html_parts.append('<p style="display: none;"><mp-style-type data-value="10000"></mp-style-type></p></section>')
+    return "\n".join(html_parts)
+
 def upload_video(token: str, video_path: Path, title: str = "") -> str:
     """上传视频到微信永久素材库，返回 media_id。"""
     import subprocess
@@ -1228,7 +1715,7 @@ def main() -> None:
     parser.add_argument("--cover", required=True, help="封面图路径（从 --images 列表里选一个）")
     parser.add_argument("--author", default="宇龙", help="作者（默认：宇龙）")
     parser.add_argument("--digest", default="", help="文章摘要")
-    parser.add_argument("--theme", default="purple", choices=["rainbow", "purple", "blue", "green"], help="渲染主题：rainbow/purple(紫色渐变)/blue(萌蓝)/green(萌绿,白底居中绿标题,需正文有##小标题)")
+    parser.add_argument("--theme", default="purple", choices=["rainbow", "purple", "blue", "green", "dark-gold", "minimal", "twilight", "sunset"], help="渲染主题：rainbow/purple(紫色渐变)/blue(萌蓝)/green(萌绿,白底居中绿标题,需正文有##小标题)")
     parser.add_argument("--env-file", default=str(DEFAULT_ENV_FILE), help="凭据文件路径")
     parser.add_argument("--video", type=str, default=None, help="视频文件路径（可选）")
     parser.add_argument("--report-file", default="push-report.json", help="报告输出路径（默认：push-report.json）")
@@ -1313,14 +1800,25 @@ def main() -> None:
 
     # 渲染 HTML
     print(f"\n🎨 渲染主题 HTML...")
+    # 预处理：清洗尾部签名与提取 hashtag，杜绝重复签名
+    cleaned_md, _ = clean_markdown_text(markdown_text)
+    
     if args.theme == "purple":
-        html = render_markdown_to_purple_html(markdown_text, image_map)
+        html = render_markdown_to_purple_html(cleaned_md, image_map)
     elif args.theme == "blue":
-        html = render_markdown_to_blue_html(markdown_text, image_map)
+        html = render_markdown_to_blue_html(cleaned_md, image_map)
     elif args.theme == "green":
-        html = render_markdown_to_green_html(markdown_text, image_map)
+        html = render_markdown_to_green_html(cleaned_md, image_map)
+    elif args.theme == "dark-gold":
+        html = render_markdown_to_dark_gold_html(markdown_text, image_map)
+    elif args.theme == "minimal":
+        html = render_markdown_to_minimal_html(markdown_text, image_map)
+    elif args.theme == "twilight":
+        html = render_markdown_to_twilight_html(markdown_text, image_map)
+    elif args.theme == "sunset":
+        html = render_markdown_to_sunset_html(markdown_text, image_map)
     else:
-        html = render_markdown_to_rainbow_html(markdown_text, image_map)
+        html = render_markdown_to_rainbow_html(cleaned_md, image_map)
     print(f"  ✅ HTML 长度: {len(html)} 字符，图片引用: {html.count('mmbiz.qpic.cn')} 张")
 
     # 如果有视频，嵌入到文章末尾（结尾签名前）

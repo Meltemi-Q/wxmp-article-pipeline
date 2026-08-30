@@ -39,7 +39,7 @@ def main() -> int:
     parser.add_argument("--cover", required=True)
     parser.add_argument("--author", default="宇龙")
     parser.add_argument("--digest", default="")
-    parser.add_argument("--theme", default="green", choices=["rainbow", "purple", "blue", "green"])
+    parser.add_argument("--theme", default="green", choices=["rainbow", "purple", "blue", "green", "dark-gold", "minimal", "twilight", "sunset"])
     parser.add_argument("--vps", default="vps", help="ssh Host，默认 vps")
     parser.add_argument(
         "--remote-script",
