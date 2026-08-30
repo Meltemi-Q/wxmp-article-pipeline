@@ -222,13 +222,15 @@ draft_add(payload)  # ensure_ascii=False
 
 ### 🤖 多模型弹药库综合评审工作流（NEW）
 
-写稿完成后，可使用 `scripts/multi_model_refine.py` 调度 Claude 3.7 Sonnet / Opus 4.6 / GPT-4o / o1 / o3-mini / Kimi k3 / Gemini 3.7 Flash 等多模型弹药库进行并发评测：
-- 爆款标题打分与心理学悬念设计
-- 视觉识图细节抓取与口语化图注增强
+写稿完成后，可使用 `scripts/cross_model_arena.py`（多模型竞技场）或 `scripts/multi_model_refine.py` 调度 Claude Opus 4.8 / Fable 5 / 5 Opus / Kimi k3 / Gemini 3.7 Flash 等多模型弹药库进行并发提案与匿名交叉盲审打分：
+- 爆款标题打分与去科技媒体工牌词
+- 视觉识图细节抓取与无句号图注增强
 - 宇龙口吻纯度审计与去 AI 腔纠偏
 - 商业价值与生态阳谋深度提炼
 
 对应核心参考：
+- `references/cross-model-benchmark-arena.md`（多模型交叉盲审天梯榜与黄金样本库，NEW）
+- `references/yulong-voice-treasure-vault.md`（宇龙专属高频金句与语感宝库，NEW）
 - `references/vision-caption-and-storytelling.md`（看图说话与图注深度指南）
 - `references/viral-title-formulas-v2.md`（爆款标题与选题公式库 v2）
 - `references/voice-preserving-expansion-guide.md`（原汁原味内容保留与扩充法则）
