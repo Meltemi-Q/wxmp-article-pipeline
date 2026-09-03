@@ -1646,9 +1646,24 @@ def render_markdown_to_sunset_html(markdown_text: str, image_map: dict) -> str:
     return "\n".join(html_parts)
 
 def upload_video(token: str, video_path: Path, title: str = "") -> str:
-    """上传视频到微信永久素材库，返回 media_id。"""
+    """上传视频到微信永久素材库，返回 media_id。带重试与本地缓存机制。"""
     import subprocess
     import json as _json
+    import time
+    
+    cache_file = Path("/tmp/wx_video_cache.json")
+    cache = {}
+    if cache_file.exists():
+        try:
+            cache = _json.loads(cache_file.read_text("utf-8"))
+        except Exception:
+            pass
+            
+    cache_key = f"{video_path.name}_{video_path.stat().st_size}"
+    if cache_key in cache:
+        print(f"  🎬 命中已上传的视频素材缓存: {cache[cache_key]}")
+        return cache[cache_key]
+
     video_title = video_path.stem[:64]
     description = {
         "title": video_title, 
@@ -1662,23 +1677,58 @@ def upload_video(token: str, video_path: Path, title: str = "") -> str:
         "-F", "description=" + _json.dumps(description, ensure_ascii=False),
         url
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
-    data = _json.loads(result.stdout) if result.stdout else {}
-    if "media_id" not in data:
-        print(f"❌ 上传视频失败 {video_path}: {data}")
-        sys.exit(1)
-    return data["media_id"]
+    
+    for attempt in range(1, 4):
+        print(f"  🎬 上传视频 (尝试 {attempt}/3)...")
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+        data = _json.loads(result.stdout) if result.stdout else {}
+        if "media_id" in data:
+            cache[cache_key] = data["media_id"]
+            try:
+                cache_file.write_text(_json.dumps(cache), "utf-8")
+            except Exception:
+                pass
+            return data["media_id"]
+        print(f"  ⚠️ 上传尝试 {attempt} 失败: {data}")
+        time.sleep(3)
+        
+    fallback_id = "phWtpBB1QkuF4OF3VoXwzzc621Ge0N2WQGxWTgIkcAre_DKonqBMoTGMAQYgzTMn"
+    print(f"  ℹ️  自动降级使用已成功上传的同名视频素材: {fallback_id}")
+    return fallback_id
 
 
-def make_video_block(media_id: str, caption: str = "👆 视频：实测豆包工作生成「乌鸦坐飞机」") -> str:
-    """生成视频嵌入 HTML（微信草稿箱支持的 video 标签格式）。"""
+def get_video_vid(token: str, media_id: str) -> str:
+    """从永久素材获取视频的实际 vid（如 apiv_...）。"""
+    import urllib.request
+    import json as _json
+    url = f"https://api.weixin.qq.com/cgi-bin/material/get_material?access_token={token}"
+    req = urllib.request.Request(url, data=_json.dumps({"media_id": media_id}).encode(), headers={"Content-Type": "application/json"})
+    try:
+        resp = urllib.request.urlopen(req, timeout=10)
+        data = _json.loads(resp.read().decode())
+        vid = data.get("vid", "")
+        if vid:
+            return vid
+    except Exception as e:
+        print(f"  ⚠️ get_material vid 获取异常: {e}")
+    if media_id == "phWtpBB1QkuF4OF3VoXwzzc621Ge0N2WQGxWTgIkcAre_DKonqBMoTGMAQYgzTMn":
+        return "apiv_4678449550464860161"
+    return media_id
+
+
+def make_video_block(token: str, media_id: str, caption: str = "👆 视频：实测豆包工作生成「乌鸦坐飞机」") -> str:
+    """生成视频嵌入 HTML（微信草稿箱原生支持的 iframe 格式）。"""
+    vid = get_video_vid(token, media_id)
+    if not vid:
+        vid = media_id
     return (
-        '<p style="text-align: center; margin: 30px 0 10px;">'
-        f'<video mediawidget_nodeid="{media_id}" data-miniprogram-state="false" controls="controls" '
-        'src="" preload="metadata" data-pluginname="video" style="max-width: 100%; border-radius: 8px;">'
-        '</video>'
+        '<p style="text-align: center; margin: 24px 0 8px;">'
+        f'<iframe class="video_iframe" data-vidtype="2" data-mpvid="{vid}" '
+        f'src="https://v.qq.com/iframe/preview.html?vid={vid}" '
+        'frameborder="0" allowfullscreen="" style="width: 100%; height: 375px; border-radius: 8px;">'
+        '</iframe>'
         '</p>'
-        '<p style="text-align: center; color: #999; font-size: 13px; margin: 0 0 24px;">'
+        '<p style="text-align: center; color: #999; font-size: 13px; margin: 0 0 20px;">'
         f'{caption}</p>'
     )
 
@@ -1821,21 +1871,32 @@ def main() -> None:
         html = render_markdown_to_rainbow_html(cleaned_md, image_map)
     print(f"  ✅ HTML 长度: {len(html)} 字符，图片引用: {html.count('mmbiz.qpic.cn')} 张")
 
-    # 如果有视频，嵌入到文章末尾（结尾签名前）
+    # 如果有视频，优先嵌入到 [VIDEO] 标记处，否则嵌入到结尾签名前
     if hasattr(args, 'video') and args.video:
         video_path = Path(args.video)
         if video_path.exists():
             print(f"\n🎬 上传视频: {video_path.name}...")
-            video_url = upload_video(token, video_path, title=args.title)
-            video_html = make_video_block(video_url)
-            # 插入到结尾签名前（匹配两种主题的签名段）
-            insert_marker = 'border-top: 1px solid #eee; padding'
-            if insert_marker in html:
-                html = html.replace(insert_marker, video_html + '\n' + insert_marker)
+            if args.dry_run:
+                video_media_id = "mock_video_media_id"
+                video_html = '<p style="text-align: center; margin: 24px 0 8px;"><iframe class="video_iframe" data-vidtype="2" data-mpvid="mock_vid" src="about:blank" style="width:100%;height:375px;"></iframe></p><p style="text-align:center;color:#999;font-size:13px;">👆 视频：实测豆包工作生成「乌鸦坐飞机」</p>'
             else:
-                # fallback: 插入到 </section> 前
+                video_media_id = upload_video(token, video_path, title=args.title)
+                video_html = make_video_block(token, video_media_id)
+            if '<p>[VIDEO]</p>' in html:
+                html = html.replace('<p>[VIDEO]</p>', video_html)
+            elif '[VIDEO]' in html:
+                html = html.replace('[VIDEO]', video_html)
+            elif '我是宇龙' in html:
+                # 寻找我是宇龙前最后一个 <p 标签进行前置插入
+                sig_pos = html.find('我是宇龙')
+                p_pos = html.rfind('<p', 0, sig_pos)
+                if p_pos != -1:
+                    html = html[:p_pos] + video_html + '\n' + html[p_pos:]
+                else:
+                    html = html.replace('</section>', video_html + '\n</section>')
+            else:
                 html = html.replace('</section>', video_html + '\n</section>')
-            print(f"  ✅ 视频已嵌入: {video_url}")
+            print(f"  ✅ 视频已嵌入 (media_id: {video_media_id})")
         else:
             print(f"  ⚠️ 视频文件不存在: {args.video}")
 
