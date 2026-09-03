@@ -228,7 +228,26 @@ draft_add(payload)  # ensure_ascii=False
 - 宇龙口吻纯度审计与去 AI 腔纠偏
 - 商业价值与生态阳谋深度提炼
 
+### 📹 微信视频嵌入与素材上传标准协议（NEW）
+
+- **严禁直接插入 `<video>` 标签**：微信草稿箱编辑器会清洗非白名单标签，导致视频丢失。
+- **微信官方原生视频组件**：必须通过 `material/add_material?type=video` 上传，再调 `material/get_material` 获取实际 `vid`（如 `apiv_...`），并生成标准 iframe：
+  `<iframe class="video_iframe" data-vidtype="2" data-mpvid="{vid}" src="https://v.qq.com/iframe/preview.html?vid={vid}" frameborder="0" allowfullscreen="" style="width: 100%; height: 375px; border-radius: 8px;"></iframe>`
+- **正文精确定位插槽**：正文 Markdown 中写入 `[VIDEO]`，渲染脚本自动将原生视频播放组件原地替换，不破坏行文逻辑。
+- **转码与体积防御**：超过 20MB 极易报 -1 system error，上传前统一用 ffmpeg 压制为 720p/H.264 (~2Mbps) 规格。
+- **缓存复用与重试**：已上传视频自动记录在 `/tmp/wx_video_cache.json`，遇到网络抖动自动退避重试 3 次。
+- 详见：`references/wechat-video-embedding-guide.md`
+
+### 📄 飞书长文档全量导出与图片无损落盘规范（NEW）
+
+- **严禁直接通过 DOM querySelector 粗暴抓取**：飞书带有虚拟滚动，普通 DOM 抓取会丢失 80% 之后的长内容与核心截图。
+- **必须使用 `feishu-doc-export/extract.js`**：遍历 `PageMain.blockManager.rootBlockModel` 提取完整 AST 与公开临时图链（asynccode）。
+- **图片二进制防损坏自检**：严禁用字符串 buffer 处理二进制图片（会产生 `ef bf bd` 乱码破坏，导致微信报 40137 invalid image format）。必须使用 Python 原生二进制流落地，并用 `file` 命令验证格式。
+- 详见：`references/feishu-export-and-media-integrity.md`
+
 对应核心参考：
+- `references/wechat-video-embedding-guide.md`（微信视频嵌入与永久素材上传完全指南，NEW）
+- `references/feishu-export-and-media-integrity.md`（飞书素材全量导出与媒体完整性校验规范，NEW）
 - `references/cross-model-benchmark-arena.md`（多模型交叉盲审天梯榜与黄金样本库，NEW）
 - `references/yulong-voice-treasure-vault.md`（宇龙专属高频金句与语感宝库，NEW）
 - `references/vision-caption-and-storytelling.md`（看图说话与图注深度指南）
