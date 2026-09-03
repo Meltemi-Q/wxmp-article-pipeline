@@ -1670,16 +1670,16 @@ def upload_video(token: str, video_path: Path, title: str = "") -> str:
     return data["media_id"]
 
 
-def make_video_block(media_id: str) -> str:
+def make_video_block(media_id: str, caption: str = "👆 视频：实测豆包工作生成「乌鸦坐飞机」") -> str:
     """生成视频嵌入 HTML（微信草稿箱支持的 video 标签格式）。"""
     return (
-        '<p style="text-align: center; margin: 30px 0;">'
+        '<p style="text-align: center; margin: 30px 0 10px;">'
         f'<video mediawidget_nodeid="{media_id}" data-miniprogram-state="false" controls="controls" '
         'src="" preload="metadata" data-pluginname="video" style="max-width: 100%; border-radius: 8px;">'
         '</video>'
         '</p>'
-        '<p style="text-align: center; color: #999; font-size: 13px; margin-bottom: 20px;">'
-        '👆 视频来源：X (Twitter)</p>'
+        '<p style="text-align: center; color: #999; font-size: 13px; margin: 0 0 24px;">'
+        f'{caption}</p>'
     )
 
 

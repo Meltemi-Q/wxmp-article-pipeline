@@ -88,3 +88,11 @@ archives/published/YYYY-MM-DD-标题slug/
   published.html    ← 微信发布版原文（真实HTML）
   content.md        ← 原写作稿（Markdown）
 ```
+
+## 最近推送草稿记录
+- **2026-09-03**: 《离了个大谱！豆包工作刚上手，一个视频直接把一周额度干崩了😂》（带实测视频嵌入版，Media ID: `phWtpBB1QkuF4OF3VoXwzy6WtNuj-ufDZUnOnYq-ms-aZUJKAytVqiV8W6lLVUhD`）
+  - 目录：`drafts/2026-09-03-doubao-work/`
+  - 主题：`green` 萌绿
+  - 视频：豆包工作生成「乌鸦坐飞机」30秒实测视频（Video Media ID: `phWtpBB1QkuF4OF3VoXwzzc621Ge0N2WQGxWTgIkcAre_DKonqBMoTGMAQYgzTMn`）
+  - 核心亮点：豆包+飞书混合体实测、30天会员与积分机制、C盘安装避坑、多模态额度消耗与大厂协同竞争洞察。
+

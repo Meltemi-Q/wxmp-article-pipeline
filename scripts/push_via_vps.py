@@ -40,6 +40,7 @@ def main() -> int:
     parser.add_argument("--author", default="宇龙")
     parser.add_argument("--digest", default="")
     parser.add_argument("--theme", default="green", choices=["rainbow", "purple", "blue", "green", "dark-gold", "minimal", "twilight", "sunset"])
+    parser.add_argument("--video", default=None, help="视频文件路径（可选）")
     parser.add_argument("--vps", default="vps", help="ssh Host，默认 vps")
     parser.add_argument(
         "--remote-script",
@@ -51,7 +52,11 @@ def main() -> int:
     md = Path(args.markdown)
     cover = Path(args.cover)
     images = [Path(p) for p in args.images]
-    for path in [md, cover, *images]:
+    video = Path(args.video) if args.video else None
+    check_paths = [md, cover, *images]
+    if video:
+        check_paths.append(video)
+    for path in check_paths:
         if not path.exists():
             print(f"❌ 文件不存在: {path}")
             return 1
@@ -72,6 +77,14 @@ def main() -> int:
     if cover.name not in copied:
         run(["scp", str(cover), f"{args.vps}:{remote_cover}"])
 
+    remote_video_arg = []
+    if video:
+        run(["ssh", args.vps, f"mkdir -p {shlex.quote(remote_dir + '/videos')}"])
+        remote_video = f"{remote_dir}/videos/{video.name}"
+        print(f"🎬 传输视频到 VPS: {video.name}...")
+        run(["scp", str(video), f"{args.vps}:{remote_video}"])
+        remote_video_arg = ["--video", remote_video]
+
     remote_report = f"{remote_dir}/push-report.json"
     remote_cmd = [
         "python3",
@@ -90,6 +103,7 @@ def main() -> int:
         args.author,
         "--digest",
         args.digest,
+        *remote_video_arg,
         "--report-file",
         remote_report,
     ]
