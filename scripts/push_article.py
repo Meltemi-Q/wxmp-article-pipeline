@@ -1721,12 +1721,38 @@ def upload_video(token: str, video_path: Path, title: str = "") -> str:
             except Exception:
                 pass
             return data["media_id"]
-        print(f"  ⚠️ 上传尝试 {attempt} 失败: {data}")
-        time.sleep(3)
+def find_library_video(token: str, query: str = "") -> tuple:
+    """从微信公众平台素材库检索用户手动上传的原生视频（wxv_ 前缀），返回 (media_id, vid) 或 (None, None)。"""
+    import urllib.request
+    import json as _json
+    batch_url = f"https://api.weixin.qq.com/cgi-bin/material/batchget_material?access_token={token}"
+    payload = {"type": "video", "offset": 0, "count": 20}
+    try:
+        req = urllib.request.Request(batch_url, data=_json.dumps(payload).encode(), headers={"Content-Type": "application/json"})
+        resp = urllib.request.urlopen(req, timeout=10)
+        data = _json.loads(resp.read().decode())
+        items = data.get("item", [])
         
-    fallback_id = "phWtpBB1QkuF4OF3VoXwzzc621Ge0N2WQGxWTgIkcAre_DKonqBMoTGMAQYgzTMn"
-    print(f"  ℹ️  自动降级使用已成功上传的同名视频素材: {fallback_id}")
-    return fallback_id
+        # 1. 优先找以 wxv_ 开头的后台原生上传视频（带原创认证与原画质），且名称或标题模糊匹配
+        for item in items:
+            name = item.get("name", "")
+            mid = item.get("media_id", "")
+            if query and query not in name:
+                # 尝试看详情
+                pass
+            det_url = f"https://api.weixin.qq.com/cgi-bin/material/get_material?access_token={token}"
+            det_req = urllib.request.Request(det_url, data=_json.dumps({"media_id": mid}).encode(), headers={"Content-Type": "application/json"})
+            det_resp = urllib.request.urlopen(det_req, timeout=10)
+            det_data = _json.loads(det_resp.read().decode())
+            vid = det_data.get("vid", "")
+            title = det_data.get("title", "")
+            if vid.startswith("wxv_"):
+                if not query or (query in name or query in title or "乌鸦" in name or "乌鸦" in title):
+                    print(f"  🌟 优先命中微信后台原生上传的高清原创视频: '{title or name}' (vid: {vid})")
+                    return mid, vid
+    except Exception as e:
+        print(f"  ⚠️ 检索素材库原生视频异常: {e}")
+    return None, None
 
 
 def get_video_vid(token: str, media_id: str) -> str:
@@ -1907,13 +1933,30 @@ def main() -> None:
     if hasattr(args, 'video') and args.video:
         video_path = Path(args.video)
         if video_path.exists():
-            print(f"\n🎬 上传视频: {video_path.name}...")
+            print(f"\n🎬 准备视频: {video_path.name}...")
             if args.dry_run:
                 video_media_id = "mock_video_media_id"
                 video_html = '<p style="text-align: center; margin: 24px 0 8px;"><iframe class="video_iframe" data-vidtype="2" data-mpvid="mock_vid" src="about:blank" style="width:100%;height:375px;"></iframe></p><p style="text-align:center;color:#999;font-size:13px;">👆 视频：实测豆包工作生成「乌鸦坐飞机」</p>'
             else:
-                video_media_id = upload_video(token, video_path, title=args.title)
-                video_html = make_video_block(token, video_media_id)
+                # 🌟 核心升级：优先检查用户是否在微信公众号后台手动上传了原生高清视频（带原创认证 wxv_）
+                query = "乌鸦" if "乌鸦" in video_path.name else video_path.stem
+                lib_mid, lib_vid = find_library_video(token, query=query)
+                if lib_mid and lib_vid:
+                    print(f"  🎬 优先使用微信素材库中用户手动上传的高清原创原生视频: vid={lib_vid}")
+                    video_media_id = lib_mid
+                    video_html = (
+                        '<p style="text-align: center; margin: 24px 0 8px;">'
+                        f'<iframe class="video_iframe" data-vidtype="2" data-mpvid="{lib_vid}" '
+                        f'src="https://mp.weixin.qq.com/mp/readtemplate?t=pages/video_player_tmpl&action=mpvideo&auto=0&vid={lib_vid}" '
+                        'frameborder="0" allowfullscreen="" style="width: 100%; height: 375px; border-radius: 8px;">'
+                        '</iframe>'
+                        '</p>'
+                        '<p style="text-align: center; color: #999; font-size: 13px; margin: 0 0 20px;">'
+                        '👆 视频：实测豆包工作生成「乌鸦坐飞机」</p>'
+                    )
+                else:
+                    video_media_id = upload_video(token, video_path, title=args.title)
+                    video_html = make_video_block(token, video_media_id)
             if '<p>[VIDEO]</p>' in html:
                 html = html.replace('<p>[VIDEO]</p>', video_html)
             elif '[VIDEO]' in html:
