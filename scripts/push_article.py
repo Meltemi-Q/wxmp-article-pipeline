@@ -1947,7 +1947,7 @@ def main() -> None:
                     video_html = (
                         '<p style="text-align: center; margin: 24px 0 8px;">'
                         f'<iframe class="video_iframe" data-vidtype="2" data-mpvid="{lib_vid}" '
-                        f'src="https://mp.weixin.qq.com/mp/readtemplate?t=pages/video_player_tmpl&action=mpvideo&auto=0&vid={lib_vid}" '
+                        f'src="https://v.qq.com/iframe/preview.html?vid={lib_vid}" '
                         'frameborder="0" allowfullscreen="" style="width: 100%; height: 375px; border-radius: 8px;">'
                         '</iframe>'
                         '</p>'
