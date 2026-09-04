@@ -1659,12 +1659,44 @@ def upload_video(token: str, video_path: Path, title: str = "") -> str:
         except Exception:
             pass
             
-    cache_key = f"{video_path.name}_{video_path.stat().st_size}"
+    # 微信 API material/add_material 硬性上限为 10MB
+    size_mb = video_path.stat().st_size / (1024 * 1024)
+    target_video_path = video_path
+    if size_mb > 9.8:
+        print(f"  ⚠️ 视频大小为 {size_mb:.2f}MB，超过微信官方 API 10MB 物理上限。")
+        print(f"  🎞️ 启动自适应最高画质转码 (精准卡在 9.2MB，最大化保留细节与码率)...")
+        hd_path = video_path.parent / f"{video_path.stem}_wx_hd.mp4"
+        duration = 30.0
+        try:
+            probe_cmd = ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", str(video_path)]
+            dur_res = subprocess.run(probe_cmd, capture_output=True, text=True)
+            if dur_res.stdout.strip():
+                duration = float(dur_res.stdout.strip())
+        except Exception:
+            pass
+        target_total_bits = 9.0 * 1024 * 1024 * 8
+        target_bitrate_kb = int((target_total_bits / max(duration, 1.0)) / 1000) - 128
+        target_bitrate_kb = max(target_bitrate_kb, 500)
+        
+        ffmpeg_cmd = [
+            "ffmpeg", "-y", "-i", str(video_path),
+            "-c:v", "libx264", "-preset", "slow",
+            "-b:v", f"{target_bitrate_kb}k", "-maxrate", f"{int(target_bitrate_kb * 1.1)}k",
+            "-bufsize", f"{target_bitrate_kb * 2}k", "-pix_fmt", "yuv420p",
+            "-c:a", "aac", "-b:a", "128k",
+            str(hd_path)
+        ]
+        res_ff = subprocess.run(ffmpeg_cmd, capture_output=True, text=True)
+        if hd_path.exists() and hd_path.stat().st_size < 10 * 1024 * 1024:
+            print(f"  ✅ 极致画质压制完成: {hd_path.stat().st_size / 1024 / 1024:.2f}MB (码率 ~{target_bitrate_kb}kbps)")
+            target_video_path = hd_path
+
+    cache_key = f"{target_video_path.name}_{target_video_path.stat().st_size}"
     if cache_key in cache:
         print(f"  🎬 命中已上传的视频素材缓存: {cache[cache_key]}")
         return cache[cache_key]
 
-    video_title = video_path.stem[:64]
+    video_title = target_video_path.stem[:64]
     description = {
         "title": video_title, 
         "introduction": video_title[:120]
@@ -1673,7 +1705,7 @@ def upload_video(token: str, video_path: Path, title: str = "") -> str:
     url = f"https://api.weixin.qq.com/cgi-bin/material/add_material?access_token={token}&type=video"
     cmd = [
         "curl", "-s",
-        "-F", f"media=@{video_path}",
+        "-F", f"media=@{target_video_path}",
         "-F", "description=" + _json.dumps(description, ensure_ascii=False),
         url
     ]
