@@ -1,15 +1,22 @@
 ---
 name: wxmp-article-pipeline
+repo: https://github.com/Meltemi-Q/wxmp-article-pipeline
+branch: master
 description: >
   微信公众号文章全流程发布工具。从 Markdown 文件到微信草稿箱的一键流水线，
-  支持两种类型：文章（news，紫色主题排版）和贴图（newspic，纯文本+图片）。
-  覆盖图片上传、主题渲染、封面选择、格式校验、推送验证、去重检查。
+  支持两种类型：文章（news，紫色/绿色等现代主题排版）和贴图（newspic，纯文本+图片）。
+  覆盖图片上传、主题渲染、封面选择、格式校验、原生视频嵌入(wxv/apiv)、推送验证、去重检查。
   当用户要求"推草稿箱""发公众号""渲染文章""发贴图/小绿书"时使用。
 ---
 
 # wxmp-article-pipeline
 
-微信公众号发布全流程 Skill。支持两种内容类型，踩过的坑都固化在这里。
+微信公众号发布全流程 Skill。支持多种内容类型，踩过的坑与最佳实践都固化在这里。
+
+> 🌐 **官方 GitHub 仓库（Single Source of Truth）**：  
+> `https://github.com/Meltemi-Q/wxmp-article-pipeline.git`  
+> 跨 Agent（Antigravity、OpenClaw、Hermes、Workbuddy、Claude 等）统一以此仓库的 `master` 分支为唯一准则。  
+> **多端更新命令**：`git pull origin master` 或 `bash scripts/update_wxmp_skill_from_github.sh`。
 
 ---
 
@@ -246,6 +253,7 @@ draft_add(payload)  # ensure_ascii=False
 - 详见：`references/feishu-export-and-media-integrity.md`
 
 对应核心参考：
+- `references/cross-agent-sync-and-workbuddy-setup.md`（跨 Agent 同步体系与 Workbuddy 接入完全指南，NEW）
 - `references/wechat-video-embedding-guide.md`（微信视频嵌入与永久素材上传完全指南，NEW）
 - `references/feishu-export-and-media-integrity.md`（飞书素材全量导出与媒体完整性校验规范，NEW）
 - `references/cross-model-benchmark-arena.md`（多模型交叉盲审天梯榜与黄金样本库，NEW）
