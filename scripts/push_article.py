@@ -28,6 +28,8 @@
   2. ~/.openclaw/secrets/wxmp-yulong.env   # Mac / Win 本机
   3. /root/.openclaw/secrets/wxmp-yulong.env  # VPS
 """
+from __future__ import annotations
+
 import shutil
 import argparse
 import json
@@ -39,24 +41,34 @@ from pathlib import Path
 
 import requests
 
-VPS_ENV_FILE = Path("/root/.openclaw/secrets/wxmp-yulong.env")
-HOME_ENV_FILE = Path.home() / ".openclaw" / "secrets" / "wxmp-yulong.env"
+# ---------------------------------------------------------------------------
+# 凭据 & Token
+# ---------------------------------------------------------------------------
 
-
-def resolve_default_env_file() -> Path:
-    """挑第一个实际存在的凭据文件；都不存在时返回本机 home 路径，方便报错提示。"""
+def resolve_env_file(account: str = "yulong", custom_path: str | None = None) -> Path:
+    """按优先级寻找凭据文件：
+    1. 用户显式指定路径 custom_path
+    2. 环境变量 WXMP_ENV_FILE
+    3. ~/.openclaw/secrets/wxmp-{account}.env
+    4. /root/.openclaw/secrets/wxmp-{account}.env
+    5. fallback 寻找默认 yulong 凭据
+    """
+    if custom_path:
+        return Path(custom_path).expanduser()
     override = os.environ.get("WXMP_ENV_FILE", "").strip()
-    candidates = []
     if override:
-        candidates.append(Path(override).expanduser())
-    candidates.extend([HOME_ENV_FILE, VPS_ENV_FILE])
+        return Path(override).expanduser()
+
+    candidates = [
+        Path.home() / ".openclaw" / "secrets" / f"wxmp-{account}.env",
+        Path("/root/.openclaw/secrets") / f"wxmp-{account}.env",
+        Path.home() / ".openclaw" / "secrets" / "wxmp-yulong.env",
+        Path("/root/.openclaw/secrets/wxmp-yulong.env"),
+    ]
     for path in candidates:
         if path.exists():
             return path
     return candidates[0]
-
-
-DEFAULT_ENV_FILE = resolve_default_env_file()
 
 
 # ---------------------------------------------------------------------------
@@ -1821,10 +1833,11 @@ def main() -> None:
     parser.add_argument("--images", nargs="+", required=True, help="图片文件路径列表（按文章顺序）")
     parser.add_argument("--title", required=True, help="文章标题")
     parser.add_argument("--cover", required=True, help="封面图路径（从 --images 列表里选一个）")
-    parser.add_argument("--author", default="宇龙", help="作者（默认：宇龙）")
+    parser.add_argument("--author", default=None, help="作者（默认按账号推断：yulong 为 宇龙，xingchen 为 星辰）")
     parser.add_argument("--digest", default="", help="文章摘要")
     parser.add_argument("--theme", default="purple", choices=["rainbow", "purple", "blue", "green", "dark-gold", "minimal", "twilight", "sunset"], help="渲染主题：rainbow/purple(紫色渐变)/blue(萌蓝)/green(萌绿,白底居中绿标题,需正文有##小标题)")
-    parser.add_argument("--env-file", default=str(DEFAULT_ENV_FILE), help="凭据文件路径")
+    parser.add_argument("--account", default="yulong", help="公众号标识 (默认 yulong，可选 xingchen 等，对应 wxmp-{account}.env)")
+    parser.add_argument("--env-file", default=None, help="凭据文件路径（覆盖 --account 自动查找）")
     parser.add_argument("--video", type=str, default=None, help="视频文件路径（可选）")
     parser.add_argument("--report-file", default="push-report.json", help="报告输出路径（默认：push-report.json）")
     parser.add_argument("--dry-run", action="store_true", help="只渲染 HTML，不推送")
@@ -1834,7 +1847,9 @@ def main() -> None:
     cover_path = Path(args.cover)
     image_paths = [Path(p) for p in args.images]
     report_path = Path(args.report_file)
-    env_file = Path(args.env_file)
+    env_file = resolve_env_file(args.account, args.env_file)
+    if not args.author:
+        args.author = "星辰" if args.account == "xingchen" else "宇龙"
 
     # 文件存在性检查
     for path in [md_path, cover_path] + image_paths:

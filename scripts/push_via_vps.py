@@ -37,9 +37,11 @@ def main() -> int:
     parser.add_argument("--images", nargs="+", required=True)
     parser.add_argument("--title", required=True)
     parser.add_argument("--cover", required=True)
-    parser.add_argument("--author", default="宇龙")
+    parser.add_argument("--author", default=None, help="作者（默认按账号推断：yulong 为 宇龙，xingchen 为 星辰）")
     parser.add_argument("--digest", default="")
     parser.add_argument("--theme", default="green", choices=["rainbow", "purple", "blue", "green", "dark-gold", "minimal", "twilight", "sunset"])
+    parser.add_argument("--account", default="yulong", help="公众号标识 (默认 yulong，可选 xingchen 等，对应 wxmp-{account}.env)")
+    parser.add_argument("--env-file", default=None, help="自定义凭据文件路径（可选）")
     parser.add_argument("--video", default=None, help="视频文件路径（可选）")
     parser.add_argument("--vps", default="vps", help="ssh Host，默认 vps")
     parser.add_argument(
@@ -48,6 +50,10 @@ def main() -> int:
     )
     parser.add_argument("--report-file", default="push-report.json")
     args = parser.parse_args()
+
+    author = args.author
+    if not author:
+        author = "星辰" if args.account == "xingchen" else "宇龙"
 
     md = Path(args.markdown)
     cover = Path(args.cover)
@@ -99,14 +105,18 @@ def main() -> int:
         remote_cover,
         "--theme",
         args.theme,
+        "--account",
+        args.account,
         "--author",
-        args.author,
+        author,
         "--digest",
         args.digest,
         *remote_video_arg,
         "--report-file",
         remote_report,
     ]
+    if args.env_file:
+        remote_cmd.extend(["--env-file", args.env_file])
     runner = "#!/bin/bash\nset -euo pipefail\n" + " ".join(shlex.quote(x) for x in remote_cmd) + "\n"
     local_runner = Path(args.report_file).resolve().parent / f".push-via-vps-{stamp}.sh"
     # Win 默认 CRLF 会让远程 bash 把 pipefail 读成 pipefail\r

@@ -1195,14 +1195,14 @@ response = requests.post(
 
 ---
 
-## 凭据位置
+## 凭据位置与多账号管理
 
-`push_article.py` 按这个顺序找第一个存在的文件：
+`push_article.py` 与 `push_via_vps.py` 支持 `--account <name>` 参数（默认为 `yulong`，已配置 `yulong` 与 `xingchen`）：
 
 ```
-$WXMP_ENV_FILE
-~/.openclaw/secrets/wxmp-yulong.env          # Mac / Win 本机
-/root/.openclaw/secrets/wxmp-yulong.env      # VPS
+$WXMP_ENV_FILE 或 --env-file <path>
+~/.openclaw/secrets/wxmp-{account}.env          # Mac / Win 本机
+/root/.openclaw/secrets/wxmp-{account}.env      # VPS
 ```
 
 包含 `WXMP_APPID` 和 `WXMP_APPSECRET`。不要把这份文件放进 GitHub、weixin-write 仓库或可同步网盘。
@@ -1210,7 +1210,11 @@ $WXMP_ENV_FILE
 家宽 / Win 本机直连 `api.weixin.qq.com` 通常会 `40164`（IP 不在白名单）。写稿仍在本机，推送改走：
 
 ```bash
-python3 scripts/push_via_vps.py --markdown article-push.md --images images/a.png --title "标题" --cover images/a.png --theme green --author 宇龙 --digest "摘要"
+# 默认推送到 屿龙 账号
+python3 scripts/push_via_vps.py --account yulong --markdown article-push.md --images images/a.png --title "标题" --cover images/a.png --theme green --author 宇龙 --digest "摘要"
+
+# 推送到 星辰写作疗愈 账号（作者默认自动设为 星辰）
+python3 scripts/push_via_vps.py --account xingchen --markdown article-push.md --images images/a.png --title "标题" --cover images/a.png --theme green --digest "摘要"
 ```
 
 ---
