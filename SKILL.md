@@ -251,9 +251,23 @@ draft_add(payload)  # ensure_ascii=False
 40 分钟慢推送复盘结论：慢不在微信 API，在 ① ego-browser 抓取（networkidle 超时重试）② 逐文件 scp 过 Tailscale DERP 中继（RTT ~300ms，每图一次握手+ stalled）③ <5 分钟的任务被拆成后台任务 + 定时器轮询（每轮一个 agent 回合）。任何 Agent 按此 SOP 执行：
 
 1. **飞书导出走 API，不开浏览器**：`python3 scripts/feishu_pull.py --doc <url> --outdir <draft-dir>/`（lark-cli OpenAPI 直出 article.md + images/，通常 <30s）。仅在 scope/权限报错时退回 ego-browser + `feishu-doc-export/extract.js`；首次缺 `docx:document:readonly` scope 先跑一次 `lark-cli auth login`。
-2. **推送一把梭，前台同步跑**：`python3 scripts/push_via_vps.py --markdown ... --images ... --cover ... --title ... --theme ... --digest ...` —— 单条 SSH 连接完成打包上传+远端执行+回拉报告，正常 1-3 分钟，输出含分阶段计时。
-3. **禁止把 <5 分钟的任务丢后台再开定时器轮询**：每一轮是一个完整 agent 回合，纯浪费墙钟时间。push_via_vps.py 是同步脚本，前台跑完拿 `push-report.json` 即可。
-4. **别手工拆小步**：不要逐张图 scp、不要分多条 ssh 命令拼装传输；tar 不可用时脚本自动降级旧 scp 路径，也可显式 `--legacy`。
+2. **推送一把梭，前台同步跑**。在本仓库根目录执行（--report-file 指到草稿目录里，别省略）：
+
+   ```bash
+   python3 skills/wxmp-article-pipeline/scripts/push_via_vps.py \
+     --markdown <draft>/article-push.md \
+     --images <draft>/images/*.png \
+     --cover <draft>/images/<cover>.png \
+     --title "标题" --theme green --author 宇龙 --digest "摘要" \
+     --report-file <draft>/push-report.json
+   ```
+
+   单条 SSH 连接完成打包上传+远端执行+回拉报告，正常 1-3 分钟，输出含分阶段计时。
+3. **成功判定看 exit code + 报告内容**：真实推送成功 = exit 0 且 `push-report.json` 含 `draft_media_id`；`--dry-run` 成功 = exit 0，报告文件为空、远端产出 `push-report.html`（dry-run 不写 json 属正常，不是失败）。
+4. **禁止把 <5 分钟的任务丢后台再开定时器轮询**：每一轮是一个完整 agent 回合，纯浪费墙钟时间。push_via_vps.py 是同步脚本，前台跑完即可。
+5. **别手工拆小步**：不要逐张图 scp、不要分多条 ssh 命令拼装传输；tar 不可用时脚本自动降级旧 scp 路径，也可显式 `--legacy`。
+6. **可并行的只有互不依赖的检查**：`aigc_check.sh`、`voice_match.py`、`wxmp_article_contract_qc.py` 互相独立，可同时发起到后台并行跑，全部返回后汇总；导出→写稿→推送这条主线必须串行。
+7. **视觉能力是写稿前提**：识图、图注、封面选择、图文对照核对都需要能看图的模型；导出/传输/推送三段任何纯文本 agent 都能跑。无视觉能力的 agent 可以完成除「写稿与图文核对」外的全部机械步骤。
 
 ### 📄 飞书长文档全量导出与图片无损落盘规范（NEW）
 
