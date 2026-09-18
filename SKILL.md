@@ -84,6 +84,7 @@ python3 /root/.openclaw/skills/wxmp-article-pipeline/scripts/pull_comments.py --
 | “看看评论”“读者说了啥”“把评论拉下来”“评论区有什么反馈” | `python3 scripts/pull_comments.py --appmsgid <id>` | 拉某篇文章的**评论正文**（昵称/内容/赞数/IP属地/作者回复）|
 | “下载某个公众号文章”“搜索公众号”“扫码登录 wxdown” | `wxmp-wxdown` | wxdown 文章下载/关注列表/扫码登录 |
 | “wxmp 草稿转飞书文档”“公众号草稿转飞书”“图片图注保留” | `node scripts/wxmp-draft-to-feishu.js <draft-dir-or-md>` | 从草稿 Markdown 创建飞书 Docx，正文在前、图片和图注在后 |
+| “把飞书文档拉下来”“导出飞书文档/飞书实测稿” | `python3 scripts/feishu_pull.py --doc <url> --outdir <draft-dir>/` | lark-cli API 直出 article.md + images/，秒级；权限不够才退回 ego-browser + extract.js |
 | “从草稿生成 prompt”“一键写稿”“企业服务受众”“直接成飞书” | `/api/drafts/{draft_id}/writing-prompt` | 由 wxmp 草稿生成结构化 Hermes 写作 prompt |
 
 不要把 `freeze-latest` 和 `wxmp-sync sync-all` 混为一个入口：前者管“正文归档 + review tab”，后者管“指标落库 + CSV 导出”。
@@ -245,10 +246,20 @@ draft_add(payload)  # ensure_ascii=False
 - **缓存复用与重试**：已上传视频自动记录在 `/tmp/wx_video_cache.json`，遇到网络抖动自动退避重试 3 次。
 - 详见：`references/wechat-video-embedding-guide.md`
 
+### ⚡ 极速链路 SOP：飞书 → 草稿箱（2026-09-19 定型，目标 <5 分钟）
+
+40 分钟慢推送复盘结论：慢不在微信 API，在 ① ego-browser 抓取（networkidle 超时重试）② 逐文件 scp 过 Tailscale DERP 中继（RTT ~300ms，每图一次握手+ stalled）③ <5 分钟的任务被拆成后台任务 + 定时器轮询（每轮一个 agent 回合）。任何 Agent 按此 SOP 执行：
+
+1. **飞书导出走 API，不开浏览器**：`python3 scripts/feishu_pull.py --doc <url> --outdir <draft-dir>/`（lark-cli OpenAPI 直出 article.md + images/，通常 <30s）。仅在 scope/权限报错时退回 ego-browser + `feishu-doc-export/extract.js`；首次缺 `docx:document:readonly` scope 先跑一次 `lark-cli auth login`。
+2. **推送一把梭，前台同步跑**：`python3 scripts/push_via_vps.py --markdown ... --images ... --cover ... --title ... --theme ... --digest ...` —— 单条 SSH 连接完成打包上传+远端执行+回拉报告，正常 1-3 分钟，输出含分阶段计时。
+3. **禁止把 <5 分钟的任务丢后台再开定时器轮询**：每一轮是一个完整 agent 回合，纯浪费墙钟时间。push_via_vps.py 是同步脚本，前台跑完拿 `push-report.json` 即可。
+4. **别手工拆小步**：不要逐张图 scp、不要分多条 ssh 命令拼装传输；tar 不可用时脚本自动降级旧 scp 路径，也可显式 `--legacy`。
+
 ### 📄 飞书长文档全量导出与图片无损落盘规范（NEW）
 
+- **优先 `scripts/feishu_pull.py`（lark-cli API，秒级）**；API 无权限或失败时才走下面的浏览器链路。
 - **严禁直接通过 DOM querySelector 粗暴抓取**：飞书带有虚拟滚动，普通 DOM 抓取会丢失 80% 之后的长内容与核心截图。
-- **必须使用 `feishu-doc-export/extract.js`**：遍历 `PageMain.blockManager.rootBlockModel` 提取完整 AST 与公开临时图链（asynccode）。
+- **浏览器兜底必须用 `feishu-doc-export/extract.js`**：遍历 `PageMain.blockManager.rootBlockModel` 提取完整 AST 与公开临时图链（asynccode）。
 - **图片二进制防损坏自检**：严禁用字符串 buffer 处理二进制图片（会产生 `ef bf bd` 乱码破坏，导致微信报 40137 invalid image format）。必须使用 Python 原生二进制流落地，并用 `file` 命令验证格式。
 - 详见：`references/feishu-export-and-media-integrity.md`
 

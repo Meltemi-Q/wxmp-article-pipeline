@@ -1885,13 +1885,26 @@ def main() -> None:
     cover_url = ""
 
     print(f"\n📤 上传图片（共 {len(image_paths)} 张）...")
-    for idx, img_path in enumerate(image_paths, 1):
+    if args.dry_run or len(image_paths) <= 1:
+        upload_results = [
+            (idx, img_path, f"https://mmbiz.qpic.cn/dry_run/{img_path.name}" if args.dry_run else upload_article_image(token, img_path))
+            for idx, img_path in enumerate(image_paths, 1)
+        ]
+    else:
+        from concurrent.futures import ThreadPoolExecutor
+
+        def _upload_one(item):
+            idx, img_path = item
+            return idx, img_path, upload_article_image(token, img_path)
+
+        with ThreadPoolExecutor(max_workers=min(4, len(image_paths))) as pool:
+            upload_results = list(pool.map(_upload_one, enumerate(image_paths, 1)))
+
+    for idx, img_path, url in upload_results:
         print(f"  [{idx}/{len(image_paths)}] {img_path.name}...", end="", flush=True)
         if args.dry_run:
-            url = f"https://mmbiz.qpic.cn/dry_run/{img_path.name}"
             print(f" [dry-run]")
         else:
-            url = upload_article_image(token, img_path)
             print(f" ✅ {url[:60]}...")
 
         entry = {
