@@ -101,13 +101,14 @@ def fetch_image(item: dict, outdir: Path, identity: str) -> dict:
         except Exception:
             blob = b""
     if not blob and token:
-        tmp = outdir / f".dl-{idx}"
+        # --output 只接受文件名不接受路径（unsafe output path），cwd 切到目标目录
+        tmpname = f".dl-{idx}"
         proc = subprocess.run(
             ["lark-cli", "docs", "+media-download", "--as", identity,
-             "--token", token, "--output", str(tmp)],
-            capture_output=True, text=True, timeout=120,
+             "--token", token, "--output", tmpname],
+            capture_output=True, text=True, timeout=120, cwd=outdir,
         )
-        cand = tmp if tmp.exists() else next(outdir.glob(f".dl-{idx}.*"), None)
+        cand = next(outdir.glob(f".dl-{idx}*"), None)
         if proc.returncode == 0 and cand:
             blob = cand.read_bytes()
             cand.unlink()
@@ -135,7 +136,8 @@ def main() -> int:
     imgs: list[dict] = []
     for i, m in enumerate(IMG_TAG_RE.finditer(xml), 1):
         attrs = dict(ATTR_RE.findall(m.group(0)))
-        imgs.append({"idx": i, "token": attrs.get("token"), "url": attrs.get("url")})
+        # docx img 的 file_token 在 src 属性上；url 存在时可走免鉴权直链
+        imgs.append({"idx": i, "token": attrs.get("token") or attrs.get("src"), "url": attrs.get("url")})
 
     md = fetch_doc(args.doc, args.identity, "markdown")
 
