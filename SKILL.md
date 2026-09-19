@@ -268,7 +268,7 @@ draft_add(payload)  # ensure_ascii=False
 5. **别手工拆小步**：不要逐张图 scp、不要分多条 ssh 命令拼装传输；tar 不可用时脚本自动降级旧 scp 路径，也可显式 `--legacy`。
 6. **可并行的只有互不依赖的检查**：`aigc_check.sh`、`voice_match.py`、`wxmp_article_contract_qc.py` 互相独立，可同时发起到后台并行跑，全部返回后汇总；导出→写稿→推送这条主线必须串行。
 7. **视觉能力是写稿前提**：识图、图注、封面选择、图文对照核对都需要能看图的模型；导出/传输/推送三段任何纯文本 agent 都能跑。无视觉能力的 agent 可以完成除「写稿与图文核对」外的全部机械步骤。
-8. **飞书稿也必须过质量闸**：`feishu_pull` 拉下的是「原稿」不是「成稿」。push 前必须并行跑 `wxmp_article_contract_qc.py` + `voice_match.py` + `aigc_check.sh`，并修一轮硬伤（错别字、空图注、`！！` 残留、假链接元信息行）。QC<60 / voice UNLIKE / aigc gate≠pass → 停下来修稿再推，不许带伤直推。AI 生成的飞书文档尤其要查错字（实测原稿含「觉得经验」「全跑同」「国产国产」等错字）。
+8. **飞书稿也必须过质量闸**：`feishu_pull` 拉下的是「原稿」不是「成稿」。push 前必须并行跑 `wxmp_article_contract_qc.py` + `voice_match.py` + `aigc_check.sh`，并修一轮硬伤（错别字、空图注、`！！` 残留、假链接元信息行）。QC<60 / voice UNLIKE / aigc gate≠pass → 停下来修稿再推，不许带伤直推。AI 生成的飞书文档尤其要查错字（实测原稿含「觉得经验」「全跑同」「国产国产」等错字）。修稿边界：错词/叠词/格式残留/`！！` 这类**理解阻断型硬伤必修**；口语习惯、不规范但有意的表达（「啥」「咱」「整活」）保留；用户手写稿拿不准的进待确认项，不擅自"纠正"。**禁止反向操作：为装活人感故意留错字或注入错字**——检测器不看错字（测 token 分布），活人感靠语域和细节不靠事故，叠词/错词读出来是粗糙不是亲切。
 9. **测试推送登记制，验收完统一删**：测试性推送不要推一条删一条——把每次的 `draft_media_id` 追加登记到 `<draft>/test-media-ids.jsonl`（每行 `{"media_id":"...","title":"...","agent":"..."}`），草稿留着供人眼验货（排版、图显、图注）；验收结束跑 `python3 scripts/delete_draft.py --registry <file>`，单条 SSH 批量删除+逐个 draft/get 反查，全清后自动清空登记文件。单个删除用 `delete_draft.py --media-id <id>`。
 10. **交叉盲审打分（多 agent 验收用）**：评「执行质量」不评「文章」（同源稿件无差别）。评委拿三件东西：任务要求原文、证据包（push-report.json + 图片清单 + file 输出 + QC/aigc 结果 + 落盘文件列表）、agent 自报。匿名化选手编号、顺序打乱、**严禁评自己产出的任务**、评委 ≥2 取均分。评维度：声称-证据一致性、跳步/残留、耗时真实性、读图是否真做（看图注描述是否命中图内文字）。写稿质量评比走 `references/cross-model-benchmark-arena.md` 的既有机制。
 
