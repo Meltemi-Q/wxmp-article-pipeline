@@ -46,10 +46,10 @@ def run(cmd: list[str]) -> None:
     subprocess.run(cmd, check=True)
 
 
-def unique_images(images: list[Path], cover: Path) -> list[Path]:
+def unique_images(images: list[Path], cover: Path | None) -> list[Path]:
     seen: set[str] = set()
     out: list[Path] = []
-    for p in [*images, cover]:
+    for p in [*images, *([cover] if cover else [])]:
         if p.name not in seen:
             seen.add(p.name)
             out.append(p)
@@ -60,7 +60,7 @@ def push_stream(args, remote_dir: str, runner: str, remote_report: str) -> int:
     """单连接：tar.gz 流上传 -> 解压 -> 执行 run.sh -> 回读报告。"""
     md = Path(args.markdown)
     images = [Path(p) for p in args.images]
-    cover = Path(args.cover)
+    cover = Path(args.cover) if args.cover else None
     video = Path(args.video) if args.video else None
 
     with tempfile.TemporaryDirectory(prefix="wxmp-push-") as td:
@@ -142,7 +142,7 @@ def push_legacy_scp(args, remote_dir: str, runner: str, remote_report: str) -> i
     """旧路径：逐文件 scp。tar 不可用时兜底。"""
     md = Path(args.markdown)
     images = [Path(p) for p in args.images]
-    cover = Path(args.cover)
+    cover = Path(args.cover) if args.cover else None
     video = Path(args.video) if args.video else None
 
     run(["ssh", args.vps, f"mkdir -p {shlex.quote(remote_dir + '/images')}"])
@@ -167,10 +167,11 @@ def push_legacy_scp(args, remote_dir: str, runner: str, remote_report: str) -> i
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="经 VPS 推微信草稿箱，绕过本机 IP 白名单")
+    parser.add_argument("--article-type", default="news", choices=["news", "newspic"], help="news=普通图文(渲染HTML)；newspic=图片消息/小绿书(纯文本+image_list,≤20图,标题≤32字,正文≤1000字)")
     parser.add_argument("--markdown", required=True)
     parser.add_argument("--images", nargs="+", required=True)
     parser.add_argument("--title", required=True)
-    parser.add_argument("--cover", required=True)
+    parser.add_argument("--cover", default=None, help="news 必填；newspic 忽略（封面自动取首图）")
     parser.add_argument("--author", default=None, help="作者（默认按账号推断：yulong 为 宇龙，xingchen 为 星辰）")
     parser.add_argument("--digest", default="")
     parser.add_argument("--theme", default="green", choices=["rainbow", "purple", "blue", "green", "dark-gold", "minimal", "twilight", "sunset"])
@@ -192,10 +193,13 @@ def main() -> int:
         author = "星辰" if args.account == "xingchen" else "宇龙"
 
     md = Path(args.markdown)
-    cover = Path(args.cover)
     images = [Path(p) for p in args.images]
+    if args.article_type == "news" and not args.cover:
+        print("❌ news 类型必须提供 --cover")
+        return 1
+    cover = Path(args.cover) if args.cover else (images[0] if images else None)
     video = Path(args.video) if args.video else None
-    check_paths = [md, cover, *images]
+    check_paths = [md, *images] + ([cover] if cover else [])
     if video:
         check_paths.append(video)
     for path in check_paths:
@@ -211,14 +215,14 @@ def main() -> int:
     remote_cmd = [
         "python3",
         args.remote_script,
+        "--article-type",
+        args.article_type,
         "--markdown",
         f"{remote_dir}/{md.name}",
         "--images",
         *remote_images,
         "--title",
         args.title,
-        "--cover",
-        f"{remote_dir}/images/{cover.name}",
         "--theme",
         args.theme,
         "--account",
@@ -231,6 +235,8 @@ def main() -> int:
         "--report-file",
         remote_report,
     ]
+    if args.article_type == "news" and cover:
+        remote_cmd.extend(["--cover", f"{remote_dir}/images/{cover.name}"])
     if args.env_file:
         remote_cmd.extend(["--env-file", args.env_file])
     if args.dry_run:

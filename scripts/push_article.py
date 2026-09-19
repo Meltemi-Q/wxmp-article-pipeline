@@ -500,6 +500,161 @@ def verify_draft(token: str, media_id: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# newspic（图片消息 / 小绿书）
+# ---------------------------------------------------------------------------
+
+NEWSPIC_MAX_IMAGES = 20
+NEWSPIC_MAX_TITLE = 32
+NEWSPIC_MAX_CONTENT = 1000
+
+
+def upload_material_image(token: str, image_path: Path) -> str:
+    """上传永久图片素材，返回 media_id（newspic image_list 用）。"""
+    mime = mimetypes.guess_type(image_path.name)[0] or "application/octet-stream"
+    with image_path.open("rb") as fh:
+        resp = requests.post(
+            f"https://api.weixin.qq.com/cgi-bin/material/add_material?access_token={token}&type=image",
+            files={"media": (image_path.name, fh, mime)},
+            timeout=180,
+        )
+    resp.raise_for_status()
+    data = resp.json()
+    if "media_id" not in data:
+        print(f"❌ 上传图片素材失败 {image_path}: {data}")
+        sys.exit(1)
+    return data["media_id"]
+
+
+def extract_newspic_text(md: str) -> str:
+    """从 Markdown 提取 newspic 纯文本正文：去图片占位、交付区、md 符号。"""
+    lines = []
+    for raw in md.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("!["):
+            continue
+        if re.match(r"^#{1,6}\s", line):
+            continue
+        if re.match(r"^-{3,}$", line) or re.search(r"图文对照表|待确认项|交付区", line):
+            break
+        if line.startswith("|"):
+            continue
+        line = re.sub(r"^>\s?", "", line)
+        line = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", line)
+        line = re.sub(r"\*\*([^*]+)\*\*", r"\1", line)
+        line = re.sub(r"`([^`]*)`", r"\1", line)
+        lines.append(line)
+    return "\n".join(lines).strip()
+
+
+def push_draft_newspic(token: str, title: str, content: str, image_media_ids: list) -> dict:
+    article = {
+        "article_type": "newspic",
+        "title": title,
+        "content": content,
+        "image_info": {"image_list": [{"image_media_id": mid} for mid in image_media_ids]},
+        "need_open_comment": 1,
+        "only_fans_can_comment": 0,
+    }
+    payload = {"articles": [article]}
+    json_str = json.dumps(payload, ensure_ascii=False)
+    resp = requests.post(
+        f"https://api.weixin.qq.com/cgi-bin/draft/add?access_token={token}",
+        data=json_str.encode("utf-8"),
+        headers={"Content-Type": "application/json; charset=utf-8"},
+        timeout=180,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    if not data.get("media_id"):
+        print(f"❌ 推送 newspic 草稿失败: {data}")
+        sys.exit(1)
+    return data
+
+
+def run_newspic(args, token: str, md_path: Path, markdown_text: str, image_paths: list, report_path: Path) -> None:
+    from concurrent.futures import ThreadPoolExecutor
+
+    print("\n🖼️  newspic（图片消息）模式")
+    if not image_paths:
+        print("❌ newspic 至少需要 1 张图片")
+        sys.exit(1)
+    if len(image_paths) > NEWSPIC_MAX_IMAGES:
+        print(f"❌ newspic 最多 {NEWSPIC_MAX_IMAGES} 张图，当前 {len(image_paths)} 张")
+        sys.exit(1)
+    if len(args.title) > NEWSPIC_MAX_TITLE:
+        print(f"❌ newspic 标题上限 {NEWSPIC_MAX_TITLE} 字，当前 {len(args.title)} 字")
+        sys.exit(1)
+
+    content = extract_newspic_text(markdown_text)
+    if not content:
+        print("❌ newspic 正文为空（Markdown 未提取到纯文本）")
+        sys.exit(1)
+    if len(content) > NEWSPIC_MAX_CONTENT:
+        print(f"⚠️  newspic 正文上限 {NEWSPIC_MAX_CONTENT} 字，当前 {len(content)} 字，可能被微信拒绝")
+    print(f"  标题 {len(args.title)} 字 / 正文 {len(content)} 字 / 图片 {len(image_paths)} 张")
+
+    # image_list 需要永久素材 media_id，不是正文图 mmbiz url
+    print(f"\n📤 上传图片素材（共 {len(image_paths)} 张）...")
+    if args.dry_run or len(image_paths) <= 1:
+        media_ids = [
+            f"DRY_{p.name}" if args.dry_run else upload_material_image(token, p)
+            for p in image_paths
+        ]
+    else:
+        with ThreadPoolExecutor(max_workers=min(4, len(image_paths))) as pool:
+            media_ids = list(pool.map(lambda p: upload_material_image(token, p), image_paths))
+    for p, mid in zip(image_paths, media_ids):
+        print(f"  ✅ {p.name} → {mid[:40]}")
+
+    if args.dry_run:
+        print("\n🔧 dry-run 完成（未推送）")
+        report = {
+            "article_type": "newspic",
+            "dry_run": True,
+            "title": args.title,
+            "image_count": len(image_paths),
+            "content_length": len(content),
+            "content_preview": content[:200],
+        }
+        report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(f"📋 dry-run 报告: {report_path}")
+        return
+
+    print(f"\n🚀 推送 newspic 草稿: {args.title[:30]}...")
+    push_result = push_draft_newspic(token, args.title, content, media_ids)
+    media_id = push_result["media_id"]
+    print(f"  ✅ 草稿 media_id: {media_id}")
+
+    print("\n✔️  验证草稿已到账...")
+    article = verify_draft(token, media_id)
+    verified_type = article.get("article_type") or article.get("articletype", "")
+    verified_imgs = len(article.get("image_info", {}).get("image_list", [])) if "error" not in article else 0
+    if "error" in article:
+        print(f"  ⚠️  验证警告: {article['error']}")
+    else:
+        print(f"  ✅ 验证通过: type={verified_type}, title='{article.get('title')}', image_list={verified_imgs} 张")
+        if verified_type != "newspic":
+            print("  ⚠️  articletype 不是 newspic，请人工核对草稿箱")
+
+    report = {
+        "article_type": "newspic",
+        "title": args.title,
+        "author": args.author,
+        "markdown_file": str(md_path),
+        "draft_media_id": media_id,
+        "image_count": len(image_paths),
+        "content_length": len(content),
+        "verified_articletype": verified_type,
+        "verified_title": article.get("title"),
+        "verified_image_list_count": verified_imgs,
+    }
+    report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    print(f"\n📋 推送完成！报告: {report_path}")
+    print(json.dumps(report, ensure_ascii=False, indent=2))
+
+
+# ---------------------------------------------------------------------------
 # 主流程
 # ---------------------------------------------------------------------------
 
@@ -1829,10 +1984,11 @@ def main() -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
+    parser.add_argument("--article-type", default="news", choices=["news", "newspic"], help="文章类型：news(普通图文,渲染HTML)/newspic(图片消息/小绿书,纯文本+image_list)")
     parser.add_argument("--markdown", required=True, help="Markdown 文件路径")
     parser.add_argument("--images", nargs="+", required=True, help="图片文件路径列表（按文章顺序）")
     parser.add_argument("--title", required=True, help="文章标题")
-    parser.add_argument("--cover", required=True, help="封面图路径（从 --images 列表里选一个）")
+    parser.add_argument("--cover", default=None, help="封面图路径（news 必填，从 --images 里选；newspic 忽略，封面自动取首图）")
     parser.add_argument("--author", default=None, help="作者（默认按账号推断：yulong 为 宇龙，xingchen 为 星辰）")
     parser.add_argument("--digest", default="", help="文章摘要")
     parser.add_argument("--theme", default="purple", choices=["rainbow", "purple", "blue", "green", "dark-gold", "minimal", "twilight", "sunset"], help="渲染主题：rainbow/purple(紫色渐变)/blue(萌蓝)/green(萌绿,白底居中绿标题,需正文有##小标题)")
@@ -1844,19 +2000,27 @@ def main() -> None:
     args = parser.parse_args()
 
     md_path = Path(args.markdown)
-    cover_path = Path(args.cover)
     image_paths = [Path(p) for p in args.images]
     report_path = Path(args.report_file)
     env_file = resolve_env_file(args.account, args.env_file)
     if not args.author:
         args.author = "星辰" if args.account == "xingchen" else "宇龙"
 
+    cover_path = Path(args.cover) if args.cover else None
+    if args.article_type == "news":
+        if cover_path is None:
+            print("❌ news 类型必须提供 --cover")
+            sys.exit(1)
+    elif cover_path is None and image_paths:
+        cover_path = image_paths[0]
+
     # 文件存在性检查
-    for path in [md_path, cover_path] + image_paths:
+    check_paths = [md_path] + image_paths + ([cover_path] if cover_path else [])
+    for path in check_paths:
         if not path.exists():
             print(f"❌ 文件不存在: {path}")
             sys.exit(1)
-    if cover_path not in image_paths:
+    if args.article_type == "news" and cover_path not in image_paths:
         print(f"⚠️  封面图 {cover_path} 不在 --images 列表里，将单独上传")
 
     print(f"📄 读取 Markdown: {md_path}")
@@ -1877,6 +2041,10 @@ def main() -> None:
     else:
         token = "DRY_RUN"
         print("🔧 dry-run 模式，跳过 API 调用")
+
+    if args.article_type == "newspic":
+        run_newspic(args, token, md_path, markdown_text, image_paths, report_path)
+        return
 
     # 上传图片
     image_map: dict[str, dict] = {}

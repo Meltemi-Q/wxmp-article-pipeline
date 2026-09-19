@@ -169,6 +169,12 @@ html = re.sub(r'<!--.*?-->', '', html, flags=re.DOTALL)
 - 正文 ≤ 1000 字（纯文本，不支持 HTML）
 - 图片最多 20 张
 - 正文字段用 `content`，图片用 `image_info.image_list`
+- `image_media_id` 必须是**永久素材** ID（`material/add_material`），不是正文图 `uploadimg` 的 url
+- 首图自动作封面，不需要 `thumb_media_id`/`digest`/`author`
+
+**踩坑记录（2026-09-19）：**
+- 字段名是 `article_type`（下划线）。写成 `articletype` 会被忽略 → 按 news 处理 → 缺 thumb_media_id → 报 `40007 invalid media_id`，误导人以为图传错了
+- `push_article.py` / `push_via_vps.py` 的 `--article-type newspic` 于 2026-09-19 实现并实测通过（14.8s，batchget 确认 `article_type=newspic`）。**此前所有"贴图验收"推送实际都是 news 类型 + 主题 HTML，不是真贴图**
 
 ---
 

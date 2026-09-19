@@ -809,33 +809,37 @@ Step 2：写正文
   │  → 一句感受 / 反问（"真方便啊～"）
   │  → 互动结尾可选：「评论区聊聊，你最想让 AI 学什么技能？」
   ↓
-Step 3：上传图片到微信素材库（add_material）
+Step 3：一条命令推送（自动完成 传图→组payload→推送→验证）
+     python3 scripts/push_via_vps.py --article-type newspic \
+       --markdown post.md --images images/1.jpg [更多图...] \
+       --title "≤20字标题" --report-file push-report.json
   ↓
-Step 4：组装 newspic payload（关键：必须加 article_type: "newspic"）
-  ↓
-Step 5：推送草稿箱
-  ↓
-输出：草稿 media_id
+输出：草稿 media_id（report 里 verified_articletype 必须是 newspic）
 ```
 
-#### 贴图 API payload 关键字段（2026-04-30 实测）
+> ⚠️ 不要手动走 news 路径发贴图——`--article-type newspic` 是唯一正确入口。
+> 贴图不需要 `--cover`（首图自动作封面），不需要 `--theme`（不渲染 HTML）。
+
+#### 贴图 API payload 关键字段（2026-09-19 脚本实测）
 
 **必须加 `article_type: "newspic"`，否则会被当成文章（news）而不是贴图！**
+`push_article.py --article-type newspic` 已封装此流程；以下为手动组装参考：
 
 ```python
 payload = {
     "articles": [{
-        "title": title,           # ≤ 20 字
-        "content": content,       # 纯文本，不含 HTML
-        "thumb_media_id": image_media_ids[0],  # 第一张图作为封面
+        "title": title,           # ≤ 32 字 API 上限（写作约定 ≤20 字）
+        "content": content,       # 纯文本 ≤1000 字，不含 HTML
         "need_open_comment": 1,
         "only_fans_can_comment": 0,
         "article_type": "newspic",  # ← 关键！不加这个会变成文章
         "image_info": {
+            # image_media_id 必须是永久素材 ID（add_material），≤20 张，首图即封面
             "image_list": [{"image_media_id": mid} for mid in image_media_ids]
         },
     }]
 }
+# 注意：newspic 不需要 thumb_media_id（首图自动作封面），也不需要 digest/author
 ```
 
 #### 贴图写作要点（基于 6 篇真实贴图提炼）
