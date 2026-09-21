@@ -2025,6 +2025,15 @@ def main() -> None:
 
     print(f"📄 读取 Markdown: {md_path}")
     markdown_text = md_path.read_text(encoding="utf-8")
+    # 草稿规范要求 article.md 首行是 `# 标题`；推送时统一剥掉，标题由 --title 承载，
+    # 避免正文重复标题 / validate_html 误伤（2026-09-21 实测踩坑）
+    md_lines = markdown_text.splitlines(keepends=True)
+    for _i, _l in enumerate(md_lines):
+        if _l.strip():
+            if re.match(r"^#\s", _l.strip()):
+                del md_lines[_i]
+                markdown_text = "".join(md_lines)
+            break
 
     # 文章自检（图片顺序 + PART 字样）
     print(f"\n🔍 文章自检...")

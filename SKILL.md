@@ -271,7 +271,21 @@ draft_add(payload)  # ensure_ascii=False
 8. **深浅两档路由（用户意图决定）**：用户手写已成稿+「直接推」→ 纯机械（~1-2min）；AI 初稿+「快发」→ 硬伤层快修（~4-5min，修完把 QC 分数和剩余问题如实报给用户）；用户说「扩充/润色/要像我的风格」→ 深度过闸（~8-10min，真改写到 voice LIKE + aigc pass）。**底线：AI 初稿不许跳过硬伤层直推**；深度档才动句子节奏，快修档只做硬伤+图注+机械节奏。
 8.5 **飞书稿也必须过质量闸**：`feishu_pull` 拉下的是「原稿」不是「成稿」。push 前必须并行跑 `wxmp_article_contract_qc.py` + `voice_match.py` + `aigc_check.sh`，并修一轮硬伤（错别字、空图注、`！！` 残留、假链接元信息行）。QC<60 / voice UNLIKE / aigc gate≠pass → 停下来修稿再推，不许带伤直推。AI 生成的飞书文档尤其要查错字（实测原稿含「觉得经验」「全跑同」「国产国产」等错字）。修稿边界：错词/叠词/格式残留/`！！` 这类**理解阻断型硬伤必修**；口语习惯、不规范但有意的表达（「啥」「咱」「整活」）保留；用户手写稿拿不准的进待确认项，不擅自"纠正"。**禁止反向操作：为装活人感故意留错字或注入错字**——检测器不看错字（测 token 分布），活人感靠语域和细节不靠事故，叠词/错词读出来是粗糙不是亲切。修稿顺序（实测 QC 43→75 的路径）：①硬伤错字+删 meta 假链接行 ②补图注——**必须是图片下一行的斜体行 `*图注*`，Markdown alt 文本不算数**（QC 只认 `^\*[^*]+\*$`），写法照 `references/image-caption-rules.md` 的发布版风格：写图里在发生什么+人称动作+具体数字+轻判断收尾，句尾无句号 ③段尾句号率降到 ≤40%——**删的是陈述惯性句号，保留真收口句**（判断句/感叹/反问收尾留句号），别一刀切齐 ④高频词降重：**禁止整批替换成另一个高频词**（实测「咱们→大家」全换会把口吻从唠嗑切成动员腔，评委扣分）——保留「咱们」主场，超额的改成省略主语或换「我/你」，保持代词自然分布 ⑤复跑 QC；仍 UNLIKE 或 aigc review/fail → 进真改写回合，机械修到此为止不要硬刷分。
 9. **测试推送登记制，验收完统一删**：测试性推送不要推一条删一条——把每次的 `draft_media_id` 追加登记到 `<draft>/test-media-ids.jsonl`（每行 `{"media_id":"...","title":"...","agent":"..."}`），草稿留着供人眼验货（排版、图显、图注）；验收结束跑 `python3 scripts/delete_draft.py --registry <file>`，单条 SSH 批量删除+逐个 draft/get 反查，全清后自动清空登记文件。单个删除用 `delete_draft.py --media-id <id>`。
-9.5 **执行者选择（2026-09-19 实测）**：给 agent 的最稳 prompt 形式是**一条 `&&` 编排好的完整命令**（push → 读 media_id → 删），别让它自己拆步规划。agy CLI headless 有缺陷：>15s 命令会被转后台且退出时直接杀进程（实测两次留草稿残留）——**agy 只能当评委不能当执行者**；Antigravity IDE 会话（agentapi `new-conversation`）同样自动后台但会正确等待，单命令 45s 全闭环；grok 的 15s 硬转后台也会阻塞等完。原则：用哪个 runtime 都行，但必须确认它**会等后台任务真结束**再退出。
+9.5 **执行者选择与通道配方（2026-09-21 多轮实测）**：给 agent 的最稳 prompt 形式是**一条 `&&` 编排好的完整命令** + **明确的完成判据**（"确认 report 文件存在且含 draft_media_id 再退出"——这句治好了 agy 提前退出杀后台的毛病）。两条 Gemini 通道实测：
+
+- **Antigravity IDE（agentapi，首选）**：LS 常驻启动 ~1s。调用方式：
+  ```bash
+  ANTIGRAVITY_LS_ADDRESS=127.0.0.1:<LS端口> \
+  ANTIGRAVITY_CSRF_TOKEN=<token> \
+  ANTIGRAVITY_PROJECT_ID=<项目id> \
+  agy agentapi new-conversation --model=flash --title=<名> "<prompt>"
+  ```
+  LS 地址/token 从 `ps eww -p <language_server pid>` 取 `--csrf_token`，端口用 `lsof -a -p <pid> -iTCP -sTCP:LISTEN` 找（取第二个监听端口）；project_id 查 `~/.gemini/config/projects/*.json`。单命令推送 45s 全闭环、贴图 ~30s。
+- **agy CLI headless（可用，有条件）**：**必须显式 `--model "Gemini 3.8 Flash (Low)"`**——不传会在线拉模型列表，烂网络下启动拖到 ~2min；传了启动 ~10s。>15s 命令会被转后台，**提示词必须写"转后台就轮询等待，确认输出文件存在再结束"**，否则退出杀进程留残留（实锤两次）。
+
+**并行看图咒语（大图量任务的关键加速）**：模型原生支持一步并发多工具，但 20 图规模默认串行逐张看（每张 30-90s，全程 10-30min）。提示词加"**用多agent/并行方式一次性查看全部 N 张图**"→ 触发 `invoke_subagent` 一步拉起 N 个并行子agent，实测 20 图 **7.5min 收齐且描述准确**（vs 串行 ~25min）。代价：N 条并发流走代理，网络抖动时个别子agent会超时——加一句"子agent失败自动降级串行补看剩余图"兜底。小图量（≤5）不用喊，模型自己会并发。
+
+**网络差的提速手段汇总**：显式 --model 跳过模型拉取；并行子agent替代串行 view_file；单条编排命令减少回合数；能走 agentapi 就别开新 CLI 进程。原则不变：用哪个 runtime 都行，但必须确认它会等任务真结束再退出。
 10. **交叉盲审打分（多 agent 验收用）**：评「执行质量」不评「文章」（同源稿件无差别）。评委拿三件东西：任务要求原文、证据包（push-report.json + 图片清单 + file 输出 + QC/aigc 结果 + 落盘文件列表）、agent 自报。匿名化选手编号、顺序打乱、**严禁评自己产出的任务**、评委 ≥2 取均分。评维度：声称-证据一致性、跳步/残留、耗时真实性、读图是否真做（看图注描述是否命中图内文字）。写稿质量评比走 `references/cross-model-benchmark-arena.md` 的既有机制。
 
 ### 📄 飞书长文档全量导出与图片无损落盘规范（NEW）
