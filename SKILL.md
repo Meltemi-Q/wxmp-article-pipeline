@@ -281,7 +281,14 @@ draft_add(payload)  # ensure_ascii=False
   agy agentapi new-conversation --model=flash --title=<名> "<prompt>"
   ```
   LS 地址/token 从 `ps eww -p <language_server pid>` 取 `--csrf_token`，端口用 `lsof -a -p <pid> -iTCP -sTCP:LISTEN` 找（取第二个监听端口）；project_id 查 `~/.gemini/config/projects/*.json`。单命令推送 45s 全闭环、贴图 ~30s。
-- **agy CLI headless（可用，有条件）**：**必须显式 `--model "Gemini 3.8 Flash (Low)"`**——不传会在线拉模型列表，烂网络下启动拖到 ~2min；传了启动 ~10s。>15s 命令会被转后台，**提示词必须写"转后台就轮询等待，确认输出文件存在再结束"**，否则退出杀进程留残留（实锤两次）。
+- **agy CLI headless（可用，有条件）**：**必须显式 `--model "Gemini 3.8 Flash (Low)"`**——不传会在线拉模型列表，烂网络下启动拖到 ~2min；传了启动 ~10s。>15s 命令会被转后台，**提示词必须写"转后台就轮询等待，确认输出文件存在再结束" + 让 run_command 的 WaitMsBeforeAsync 设 120000**，否则退出杀进程留残留（实锤三次：等待窗口默认只有 ~5s）。
+- **agy CLI 走中转端点提速（网络差时的关键）**：官方 API 走代理慢且不稳，可指到 OpenAI/Gemini 双格式中转：
+  ```bash
+  # settings.json 加 "modelProvider": "gemini"，然后：
+  GEMINI_API_KEY=<key> GOOGLE_GEMINI_BASE_URL=https://api.iherai.com/v1beta \
+  agy --dangerously-skip-permissions --model "gemini-3.8-flash-high" -p "<任务>"
+  ```
+  实测：4 图查看 24.8s（原 2m40s），newspic 真推全闭环 34.9s。中转 key 存 `~/.gemini/` 凭据区，不进仓库。
 
 **并行看图咒语（大图量任务的关键加速）**：模型原生支持一步并发多工具，但 20 图规模默认串行逐张看（每张 30-90s，全程 10-30min）。提示词加"**用多agent/并行方式一次性查看全部 N 张图**"→ 触发 `invoke_subagent` 一步拉起 N 个并行子agent，实测 20 图 **7.5min 收齐且描述准确**（vs 串行 ~25min）。代价：N 条并发流走代理，网络抖动时个别子agent会超时——加一句"子agent失败自动降级串行补看剩余图"兜底。小图量（≤5）不用喊，模型自己会并发。
 
