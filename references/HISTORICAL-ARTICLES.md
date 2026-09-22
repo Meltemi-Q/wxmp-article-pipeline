@@ -41,6 +41,7 @@ archives/
 
 | 日期 | 标题 | 目录 | 状态 | 备注 |
 |------|------|------|------|------|
+| 2026-09-22 | 我让豆包工作用高德和飞猪外挂做旅游攻略，中途翻车好几次，但结果真香！ | drafts/2026-09-21-doubao-travel-guide/ | 已推草稿箱 | 萌绿；封面为image-011.png(下大陈岛航线绿洲地图)；20张高清图；media_id: phWtpBB1QkuF4OF3VoXwzxQcGohSVsRO3K6XAozha5SX52mY1gnnKnd5EGWHd89M |
 | 2026-08-30 | 微信 Agent 小微深度体验，它又双迭代啦！ | drafts/2026-08-30-xiaowei-update-v2/ | 已推草稿箱 | 萌绿；封面为图3(15年至今账单明细)；9张高清图；media_id: phWtpBB1QkuF4OF3VoXwz141djYEO2EZVFhFLexyFDusbRowERNV6jei0m0X9p1M |
 | 2026-08-29 | 深度用了几天 Grok Bot，我终于看懂了马斯克的 AI 阳谋 | drafts/2026-08-29-grok-bot-musk-ai/ | 已推草稿箱 | 萌绿；封面为图2(配置图)；签名更新为专注AI Agent定位；media_id: phWtpBB1QkuF4OF3VoXwz6y1jvvExxVoyrO7P2uQNgbj0MR_9V1M_Z8vBxiaNet2 |
 | 2026-08-15 | 离了个大谱！Grok bot 在它电脑上给我开了个Claude账号 | drafts/2026-08-15-grok-bot-claude/ | 已发布 | 萌绿；用户手改后发布 https://mp.weixin.qq.com/s/2eKc_6jEuN7T0CDxXSfbcg；手改规律见 REVISION-TRACKING |
