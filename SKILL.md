@@ -292,6 +292,8 @@ draft_add(payload)  # ensure_ascii=False
 
 **并行看图咒语（大图量任务的关键加速）**：模型原生支持一步并发多工具，但 20 图规模默认串行逐张看（每张 30-90s，全程 10-30min）。提示词加"**用多agent/并行方式一次性查看全部 N 张图**"→ 触发 `invoke_subagent` 一步拉起 N 个并行子agent，实测 20 图 **7.5min 收齐且描述准确**（vs 串行 ~25min）。代价：N 条并发流走代理，网络抖动时个别子agent会超时——加一句"子agent失败自动降级串行补看剩余图"兜底。小图量（≤5）不用喊，模型自己会并发。
 
+**更快的看图姿势（2026-09-21 实测）：纯看图根本不需要 agent 壳**——`scripts/describe_images.py` 裸调中转 API 并发看图，6 张 13.4s、20 张预估 ~25s，比 subagent 快 ~10 倍且不怕 server restart 团灭。推荐流水线：**feishu_pull → describe_images.py（并行秒级出图描述）→ agent 拿着描述写稿/写图注（纯文本回合，快）→ QC → 推**。中转需 UA 头绕过 Cloudflare（脚本已内置）；key 在 `~/.openclaw/secrets/iherai.env`。
+
 **网络差的提速手段汇总**：显式 --model 跳过模型拉取；并行子agent替代串行 view_file；单条编排命令减少回合数；能走 agentapi 就别开新 CLI 进程。原则不变：用哪个 runtime 都行，但必须确认它会等任务真结束再退出。
 10. **交叉盲审打分（多 agent 验收用）**：评「执行质量」不评「文章」（同源稿件无差别）。评委拿三件东西：任务要求原文、证据包（push-report.json + 图片清单 + file 输出 + QC/aigc 结果 + 落盘文件列表）、agent 自报。匿名化选手编号、顺序打乱、**严禁评自己产出的任务**、评委 ≥2 取均分。评维度：声称-证据一致性、跳步/残留、耗时真实性、读图是否真做（看图注描述是否命中图内文字）。写稿质量评比走 `references/cross-model-benchmark-arena.md` 的既有机制。
 
